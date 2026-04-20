@@ -5,6 +5,8 @@
 ![TYPO3 versions](https://typo3-badges.dev/badge/repeatable_form_elements/typo3/shields.svg)
 ![Latest version](https://typo3-badges.dev/badge/repeatable_form_elements/version/shields.svg)
 
+> **Fork notice:** This is a fork of [tritum/repeatable_form_elements](https://github.com/tritum/repeatable_form_elements), the original extension by Ralf Zimmermann / dreistrom.land. This fork adds TYPO3 v14 compatibility, PSR-14 event migration, CI/CD infrastructure and a DDEV-based multi-version test environment.
+
 # Custom form element "Repeatable container"
 
 This TYPO3 extension adds a custom form element "Repeatable container" to the
