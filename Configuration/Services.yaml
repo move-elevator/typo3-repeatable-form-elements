@@ -6,8 +6,21 @@ services:
 
   TRITUM\RepeatableFormElements\:
     resource: '../Classes/*'
+    exclude:
+      - '../Classes/Domain/Model/*'
+      - '../Classes/Event/*'
 
   TRITUM\RepeatableFormElements\EventListener\AdaptVariantConditionEventListener:
     tags:
       - name: event.listener
         identifier: 'repeatableFormElements/copyVariants/adaptCondition'
+
+  TRITUM\RepeatableFormElements\EventListener\AfterCurrentPageIsResolvedListener:
+    tags:
+      - name: event.listener
+        identifier: 'repeatableFormElements/afterCurrentPageIsResolved'
+
+  TRITUM\RepeatableFormElements\EventListener\BeforeRenderableIsRenderedListener:
+    tags:
+      - name: event.listener
+        identifier: 'repeatableFormElements/beforeRenderableIsRendered'

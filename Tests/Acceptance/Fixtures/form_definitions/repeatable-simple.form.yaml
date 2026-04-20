@@ -1,0 +1,58 @@
+renderingOptions:
+  submitButtonLabel: Absenden
+type: Form
+identifier: repeatable-simple
+label: 'Repeatable Container - Simple Test'
+prototypeName: standard
+finishers:
+  -
+    identifier: Confirmation
+    options:
+      message: 'Vielen Dank! Das Formular wurde erfolgreich abgesendet.'
+renderables:
+  -
+    type: Page
+    identifier: page-1
+    label: 'Kontaktdaten'
+    renderables:
+      -
+        type: Text
+        identifier: company
+        label: Firma
+        properties:
+          fluidAdditionalAttributes:
+            placeholder: 'Firmenname'
+      -
+        type: RepeatableContainer
+        identifier: persons
+        label: Personen
+        properties:
+          minimumCopies: 0
+          maximumCopies: 5
+          showRemoveButton: true
+          copyButtonLabel: 'Weitere Person hinzufuegen'
+          removeButtonLabel: 'Person entfernen'
+        renderables:
+          -
+            type: Text
+            identifier: firstname
+            label: Vorname
+            validators:
+              -
+                identifier: NotEmpty
+          -
+            type: Text
+            identifier: lastname
+            label: Nachname
+            validators:
+              -
+                identifier: NotEmpty
+          -
+            type: Email
+            identifier: email
+            label: E-Mail
+            validators:
+              -
+                identifier: NotEmpty
+              -
+                identifier: EmailAddress

@@ -10,6 +10,8 @@ namespace TRITUM\RepeatableFormElements\Hooks;
  * For the full copyright and license information, please read the
  * LICENSE.txt file that was distributed with this source code.
  */
+use Psr\EventDispatcher\EventDispatcherInterface;
+use TRITUM\RepeatableFormElements\Event\AfterBuildingFinishedEvent;
 use TRITUM\RepeatableFormElements\FormElements\RepeatableContainerInterface;
 use TRITUM\RepeatableFormElements\Service\CopyService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -22,7 +24,7 @@ use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
 use TYPO3\CMS\Form\Domain\Model\Renderable\RootRenderableInterface;
 use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
 
-class FormHooks
+final class FormHooks
 {
     /**
      * @param FormRuntime $formRuntime
@@ -35,8 +37,8 @@ class FormHooks
      */
     public function afterInitializeCurrentPage(
         FormRuntime $formRuntime,
-        CompositeRenderableInterface $currentPage = null,
-        CompositeRenderableInterface $lastPage = null,
+        ?CompositeRenderableInterface $currentPage = null,
+        ?CompositeRenderableInterface $lastPage = null,
         array $rawRequestArguments = [],
     ): ?CompositeRenderableInterface {
         foreach ($formRuntime->getPages() as $page) {
@@ -125,12 +127,17 @@ class FormHooks
                 $renderable->addValidator($validator);
             }
 
+            // Legacy hook (v13 compat, no-op in v14)
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
                 $hookObj = GeneralUtility::makeInstance($className);
                 if (method_exists($hookObj, 'afterBuildingFinished')) {
                     $hookObj->afterBuildingFinished($renderable);
                 }
             }
+            // PSR-14 event (v13 + v14)
+            GeneralUtility::makeInstance(EventDispatcherInterface::class)->dispatch(
+                new AfterBuildingFinishedEvent($renderable)
+            );
         }
 
         if ($renderable instanceof CompositeRenderableInterface) {
@@ -151,8 +158,8 @@ class FormHooks
      */
     protected function userWentBackToPreviousStep(
         FormRuntime $formRuntime,
-        CompositeRenderableInterface $currentPage = null,
-        CompositeRenderableInterface $lastPage = null,
+        ?CompositeRenderableInterface $currentPage = null,
+        ?CompositeRenderableInterface $lastPage = null,
     ): bool {
         return $currentPage !== null
                 && $lastPage !== null

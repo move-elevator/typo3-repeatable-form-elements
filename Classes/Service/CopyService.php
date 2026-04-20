@@ -12,6 +12,7 @@ namespace TRITUM\RepeatableFormElements\Service;
  */
 
 use Psr\EventDispatcher\EventDispatcherInterface;
+use TRITUM\RepeatableFormElements\Event\AfterBuildingFinishedEvent;
 use TRITUM\RepeatableFormElements\Event\CopyVariantEvent;
 use TRITUM\RepeatableFormElements\FormElements\RepeatableContainerInterface;
 use TYPO3\CMS\Core\Configuration\Features;
@@ -23,6 +24,7 @@ use TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface;
 use TYPO3\CMS\Form\Domain\Model\FormDefinition;
 use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
 use TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface;
+use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
 use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableVariant;
 use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
 use TYPO3\CMS\Form\Domain\Runtime\FormState;
@@ -36,7 +38,8 @@ class CopyService
     protected FormDefinition $formDefinition;
     protected array $repeatableContainersByOriginalIdentifier = [];
     protected array $typeDefinitions = [];
-    protected mixed $features;
+    protected Features $features;
+    protected EventDispatcherInterface $eventDispatcher;
 
     /**
      * @param FormRuntime $formRuntime
@@ -48,6 +51,7 @@ class CopyService
         $this->formDefinition = $formRuntime->getFormDefinition();
         $this->typeDefinitions = $this->formDefinition->getTypeDefinitions();
         $this->features = GeneralUtility::makeInstance(Features::class);
+        $this->eventDispatcher = GeneralUtility::makeInstance(EventDispatcherInterface::class);
     }
 
     /**
@@ -185,12 +189,7 @@ class CopyService
         $parentRenderableForNewContainer->addElement($newContainer);
         $parentRenderableForNewContainer->moveElementAfter($newContainer, $moveAfterContainer);
 
-        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
-            $hookObj = GeneralUtility::makeInstance($className);
-            if (method_exists($hookObj, 'afterBuildingFinished')) {
-                $hookObj->afterBuildingFinished($newContainer);
-            }
-        }
+        $this->dispatchAfterBuildingFinished($newContainer);
 
         foreach ($copyFromContainer->getElements() as $originalFormElement) {
             $this->createNestedElements($originalFormElement, $newContainer, $copyFromContainer->getIdentifier(), $newIdentifier);
@@ -252,12 +251,7 @@ class CopyService
         $this->copyProcessingRule($originalFormElement->getIdentifier(), $newIdentifier);
         $this->copyVariants($originalFormElement, $newFormElement, $newIdentifier);
 
-        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
-            $hookObj = GeneralUtility::makeInstance($className);
-            if (method_exists($hookObj, 'afterBuildingFinished')) {
-                $hookObj->afterBuildingFinished($newFormElement);
-            }
-        }
+        $this->dispatchAfterBuildingFinished($newFormElement);
 
         if ($originalFormElement instanceof CompositeRenderableInterface) {
             foreach ($originalFormElement->getElements() as $originalChildFormElement) {
@@ -390,9 +384,8 @@ class CopyService
                 $options['condition'] = $propCondition->getValue($originalVariant);
                 $options['identifier'] = $originalIdentifier;
 
-                $eventDispatcher = GeneralUtility::makeInstance(EventDispatcherInterface::class);
                 /** @var CopyVariantEvent $event */
-                $event = $eventDispatcher->dispatch(
+                $event = $this->eventDispatcher->dispatch(
                     new CopyVariantEvent($options, $originalFormElement, $newFormElement, $newIdentifier),
                 );
 
@@ -407,4 +400,20 @@ class CopyService
         }
     }
 
+    /**
+     * Dispatch the afterBuildingFinished event/hook for a renderable.
+     * In v13: dispatches both the legacy SC_OPTIONS hook and the PSR-14 event.
+     * In v14+: the SC_OPTIONS hook no longer exists, only the PSR-14 event fires.
+     */
+    protected function dispatchAfterBuildingFinished(RenderableInterface $renderable): void
+    {
+        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
+            $hookObj = GeneralUtility::makeInstance($className);
+            if (method_exists($hookObj, 'afterBuildingFinished')) {
+                $hookObj->afterBuildingFinished($renderable);
+            }
+        }
+
+        $this->eventDispatcher->dispatch(new AfterBuildingFinishedEvent($renderable));
+    }
 }
