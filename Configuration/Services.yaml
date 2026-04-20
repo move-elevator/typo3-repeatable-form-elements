@@ -14,3 +14,13 @@ services:
     tags:
       - name: event.listener
         identifier: 'repeatableFormElements/copyVariants/adaptCondition'
+
+  TRITUM\RepeatableFormElements\EventListener\AfterCurrentPageIsResolvedListener:
+    tags:
+      - name: event.listener
+        identifier: 'repeatableFormElements/afterCurrentPageIsResolved'
+
+  TRITUM\RepeatableFormElements\EventListener\BeforeRenderableIsRenderedListener:
+    tags:
+      - name: event.listener
+        identifier: 'repeatableFormElements/beforeRenderableIsRendered'
