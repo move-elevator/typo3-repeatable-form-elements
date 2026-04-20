@@ -24,7 +24,7 @@ use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
 use TYPO3\CMS\Form\Domain\Model\Renderable\RootRenderableInterface;
 use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
 
-class FormHooks
+final class FormHooks
 {
     /**
      * @param FormRuntime $formRuntime
@@ -37,8 +37,8 @@ class FormHooks
      */
     public function afterInitializeCurrentPage(
         FormRuntime $formRuntime,
-        CompositeRenderableInterface $currentPage = null,
-        CompositeRenderableInterface $lastPage = null,
+        ?CompositeRenderableInterface $currentPage = null,
+        ?CompositeRenderableInterface $lastPage = null,
         array $rawRequestArguments = [],
     ): ?CompositeRenderableInterface {
         foreach ($formRuntime->getPages() as $page) {
@@ -158,8 +158,8 @@ class FormHooks
      */
     protected function userWentBackToPreviousStep(
         FormRuntime $formRuntime,
-        CompositeRenderableInterface $currentPage = null,
-        CompositeRenderableInterface $lastPage = null,
+        ?CompositeRenderableInterface $currentPage = null,
+        ?CompositeRenderableInterface $lastPage = null,
     ): bool {
         return $currentPage !== null
                 && $lastPage !== null
