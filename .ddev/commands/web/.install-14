@@ -1,0 +1,51 @@
+#!/bin/bash
+
+. .ddev/.setup/scripts/utils.sh
+
+# Pre-setup function for TYPO3 version 14.
+pre_setup 14
+
+# Copy form definitions to fileadmin (before post_setup so they exist when TYPO3 boots)
+_progress " ├─ Copy form definitions"
+  FORM_DIR="$BASE_PATH/public/fileadmin/form_definitions"
+  mkdir -p "$FORM_DIR"
+  cp /var/www/html/Tests/Acceptance/Fixtures/form_definitions/*.form.yaml "$FORM_DIR/" 2>/dev/null || true
+_done
+
+post_setup
+
+# v14: Remove sys_template to avoid double rendering (site sets provide all TypoScript)
+_progress " ├─ Remove sys_template"
+  cd $BASE_PATH
+  php -r '
+  $pdo = new PDO("mysql:host=db;dbname='$DATABASE'", "root", "root");
+  $pdo->exec("DELETE FROM sys_template");
+  echo "sys_template removed\n";
+  '
+_done
+
+# v14: Disable contentRenderingTemplates to prevent double content rendering
+_progress " ├─ Disable contentRenderingTemplates"
+  echo '<?php $GLOBALS["TYPO3_CONF_VARS"]["FE"]["contentRenderingTemplates"] = [];' > $BASE_PATH/config/system/additional.php
+_done
+
+# Add test/sitepackage to existing site dependencies
+_progress " ├─ Configure site set"
+  SITE_CONFIG="$BASE_PATH/config/sites/main/config.yaml"
+  if [ -f "$SITE_CONFIG" ]; then
+    cd $BASE_PATH
+    php -r '
+    $f = "config/sites/main/config.yaml";
+    $c = file_get_contents($f);
+    if (strpos($c, "test/sitepackage") === false) {
+      $c = preg_replace("/^(dependencies:\n(?:  - .*\n)*)/m", "$1  - test/sitepackage\n", $c);
+      file_put_contents($f, $c);
+    }
+    '
+  fi
+_done
+
+_progress " ├─ Flush cache"
+  rm -rf $BASE_PATH/var/cache/*
+  $TYPO3_BIN cache:flush
+_done

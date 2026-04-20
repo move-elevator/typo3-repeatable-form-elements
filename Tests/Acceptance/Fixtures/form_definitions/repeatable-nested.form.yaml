@@ -1,0 +1,82 @@
+renderingOptions:
+  submitButtonLabel: Absenden
+type: Form
+identifier: repeatable-nested
+label: 'Repeatable Container - Nested & Multi-Step'
+prototypeName: standard
+finishers:
+  -
+    identifier: Confirmation
+    options:
+      message: 'Vielen Dank! Alle Daten wurden korrekt uebermittelt.'
+renderables:
+  -
+    type: Page
+    identifier: page-1
+    label: 'Schritt 1: Teilnehmer'
+    renderingOptions:
+      previousButtonLabel: Zurueck
+      nextButtonLabel: Weiter
+    renderables:
+      -
+        type: Text
+        identifier: event-name
+        label: Veranstaltung
+        validators:
+          -
+            identifier: NotEmpty
+      -
+        type: RepeatableContainer
+        identifier: participants
+        label: Teilnehmer
+        properties:
+          minimumCopies: 1
+          maximumCopies: 10
+          showRemoveButton: true
+          copyButtonLabel: 'Teilnehmer hinzufuegen'
+          removeButtonLabel: 'Teilnehmer entfernen'
+        renderables:
+          -
+            type: Text
+            identifier: name
+            label: Name
+            validators:
+              -
+                identifier: NotEmpty
+          -
+            type: Email
+            identifier: email
+            label: E-Mail
+          -
+            type: SingleSelect
+            identifier: ticket-type
+            label: Ticket-Typ
+            properties:
+              options:
+                '': 'Bitte waehlen'
+                standard: Standard
+                vip: VIP
+                student: Student
+          -
+            type: Checkbox
+            identifier: catering
+            label: 'Catering gewuenscht'
+  -
+    type: Page
+    identifier: page-2
+    label: 'Schritt 2: Zusatzinformationen'
+    renderingOptions:
+      previousButtonLabel: Zurueck
+      nextButtonLabel: Weiter
+    renderables:
+      -
+        type: Textarea
+        identifier: notes
+        label: Anmerkungen
+        properties:
+          fluidAdditionalAttributes:
+            rows: '4'
+  -
+    type: SummaryPage
+    identifier: summary
+    label: Zusammenfassung

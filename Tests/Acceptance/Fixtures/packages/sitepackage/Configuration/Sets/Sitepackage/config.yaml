@@ -1,0 +1,6 @@
+name: test/sitepackage
+label: Test Sitepackage
+dependencies:
+  - typo3/fluid-styled-content
+  - typo3/form
+  - tritum/repeatable-form-elements

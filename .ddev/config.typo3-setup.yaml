@@ -1,0 +1,11 @@
+type: php
+docroot: .Build
+webserver_type: apache-fpm
+additional_hostnames:
+  - 11.repeatable-form-elements
+  - 12.repeatable-form-elements
+  - 13.repeatable-form-elements
+  - 14.repeatable-form-elements
+hooks:
+   post-start:
+    - exec: mkdir -p /var/www/html/.Build/ && cp /var/www/html/.ddev/.setup/templates/* /var/www/html/.Build/
