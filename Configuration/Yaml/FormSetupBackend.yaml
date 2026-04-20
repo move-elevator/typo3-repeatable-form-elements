@@ -58,5 +58,5 @@ prototypes:
       dynamicJavaScriptModules:
         additionalViewModelModules:
           1595333290: '@tritum/repeatable-form-elements/backend/form-editor/view-model.js'
-      formEditorPartials:
-        FormElement-RepeatableContainer: 'Stage/Fieldset'
+      # formEditorPartials removed: v14 uses web components for stage rendering (Deprecation #109306)
+      # Omitting formEditorPartials lets both v13 and v14 use their default composite element rendering.
