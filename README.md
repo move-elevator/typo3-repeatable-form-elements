@@ -5,62 +5,83 @@
 ![TYPO3 versions](https://typo3-badges.dev/badge/repeatable_form_elements/typo3/shields.svg)
 ![Latest version](https://typo3-badges.dev/badge/repeatable_form_elements/version/shields.svg)
 
-> **Fork notice:** This is a fork of [tritum/repeatable_form_elements](https://github.com/tritum/repeatable_form_elements), the original extension by Ralf Zimmermann / dreistrom.land. This fork adds TYPO3 v14 compatibility, PSR-14 event migration, CI/CD infrastructure and a DDEV-based multi-version test environment.
+> [!NOTE]
+> This is a fork of [tritum/repeatable_form_elements](https://github.com/tritum/repeatable_form_elements), the original extension by Ralf Zimmermann / dreistrom.land. This fork adds TYPO3 v14 compatibility, PSR-14 event migration, CI/CD infrastructure and a DDEV-based multi-version test environment.
 
-# Custom form element "Repeatable container"
+# 📦 Repeatable Form Elements
 
-This TYPO3 extension adds a custom form element "Repeatable container" to the
-TYPO3 form framework. It displays one/ a set of fields which can be duplicated
-and removed if desired. Any existing validation is copied as well. All form
-finishers will be aware of the copied field(s).
+A TYPO3 extension that adds a **Repeatable container** element to the TYPO3 form framework. It allows editors to create container elements with any type of fields. In the frontend, users can dynamically add and remove copies of the container. Validation is copied automatically and all form finishers are aware of the duplicated fields.
 
-## Preferred installation
+## 📋 Requirements
 
-1. Require the extension via composer.
-2. Add the site set tritum/form-element-linked-checkbox to the dependencies of 
-   your site packages site set (TYPO3 v13). Or add the static TypoScript 
-   configuration to your TypoScript template (TYPO3 v12 and TYPO3 v13).
+| Requirement | Version |
+|-------------|---------|
+| PHP | 8.2 – 8.4 |
+| TYPO3 | 13.4 LTS, 14.x |
 
-## Usage
+## 🚀 Installation
 
-Open the TYPO3 form editor and create a new form/ open an existing one. Add a
-new element to your form. The modal will list the new custom form element
-"Repeatable container".
+```bash
+composer require tritum/repeatable-form-elements
+```
 
-Add the desired fields with the favored validators to the "Repeatable container".
+Add the site set `tritum/repeatable-form-elements` to the dependencies of your site package's site set:
 
-The frontend will render the "Repeatable container" as fieldset. In addition to the
-included form elements it will display buttons for copying/ removing new sets of fields.
+```yaml
+# Configuration/Sets/YourSitePackage/config.yaml
+dependencies:
+  - tritum/repeatable-form-elements
+```
 
-The newly implemented extended version of SaveToDatabaseFinisher can be used as seen [here](Resources/Private/ExampleFormDefinitions/extended-save-to-database-finisher.form.yaml).
+## 💡 Usage
 
-## Configuration
+1. Open the TYPO3 **form editor** and create or open a form.
+2. Add a new element — the modal lists the **Repeatable container**.
+3. Add fields with validators to the container.
+4. In the frontend, the container renders as a `<fieldset>` with **copy** and **remove** buttons.
 
-To deactivate the copying of variants, the feature `repeatableFormElements.copyVariants` can be used
+### Extended SaveToDatabaseFinisher
 
-## Extendability
+An extended version of the `SaveToDatabaseFinisher` is included for persisting repeatable container data. See the [example form definition](Resources/Private/ExampleFormDefinitions/extended-save-to-database-finisher.form.yaml).
 
-The following options can be used to extend the behavior when copying.
+## ⚙️ Configuration
 
-| Name             | Description                                                      |
-|------------------|------------------------------------------------------------------|
-| CopyVariantEvent | Extend manipulation of copied variants or disable specific ones. |
+To deactivate the copying of variants, disable the feature flag:
 
-## Credits
+```php
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['features']['repeatableFormElements.copyVariants'] = false;
+```
 
-This TYPO3 extension was created by Ralf Zimmermann (https://dreistrom.land).
+## 🔌 Extendability
 
-## Thank you
+| Event | Description |
+|-------|-------------|
+| `CopyVariantEvent` | Modify or disable specific copied variants during container duplication. |
+| `AfterBuildingFinishedEvent` | React after a form renderable has been built/copied by the repeatable container logic. Replaces the removed `afterBuildingFinished` SC_OPTIONS hook. |
 
-Nora Winter - "Faktenkopf" at www.faktenhaus.de - sponsored this great extension.
-The fine people at www.b13.de connected all the people involved.
+## 🤝 Contributing
 
-Elias Häußler - haeussler.dev - for helping with TYPO3v11 compatability and providing
-the beautiful [TYPO3 badges](https://typo3-badges.dev). Use them. Give him some kudos!
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, linting, testing and the PR workflow.
 
-Uwe - Hawkeye1909 - for removing jQuery as dependency.
+## 📝 Changelog
 
-Alexander Opitz @ extrameile-gehen.de - for his work on saving repeatable elements to database.
+See [CHANGELOG.md](CHANGELOG.md) for a list of changes.
 
+## 🏆 Credits
 
-especially to all others who have contributed to the improvement of the extension.
+This extension was originally created by [Ralf Zimmermann](https://dreistrom.land).
+
+**Thank you to all contributors:**
+
+- **Nora Winter** (Faktenkopf / faktenhaus.de) — sponsored the original extension
+- **b13.de** — connected all the people involved
+- **Elias Häußler** (haeussler.dev) — TYPO3 v11 compatibility and [TYPO3 badges](https://typo3-badges.dev)
+- **Uwe** (Hawkeye1909) — removed jQuery as a dependency
+- **Alexander Opitz** (extrameile-gehen.de) — SaveToDatabaseFinisher for repeatable elements
+- **Falko Linke, Christian Seyfferth** (dreistrom.land) — ongoing development
+
+And everyone else who has contributed to improving this extension.
+
+## 📄 License
+
+GPL-2.0-or-later — see [LICENSE](LICENSE.txt) for details.
