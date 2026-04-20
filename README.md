@@ -22,7 +22,7 @@ A TYPO3 extension that adds a **Repeatable container** element to the TYPO3 form
 ## 🚀 Installation
 
 ```bash
-composer require tritum/repeatable-form-elements
+composer require move-elevator/typo3-repeatable-form-elements
 ```
 
 Add the site set `tritum/repeatable-form-elements` to the dependencies of your site package's site set:
@@ -69,18 +69,9 @@ See [CHANGELOG.md](CHANGELOG.md) for a list of changes.
 
 ## 🏆 Credits
 
-This extension was originally created by [Ralf Zimmermann](https://dreistrom.land).
+Originally created by [Ralf Zimmermann / dreistrom.land](https://dreistrom.land). See the [original repository](https://github.com/tritum/repeatable_form_elements) for the full list of contributors.
 
-**Thank you to all contributors:**
-
-- **Nora Winter** (Faktenkopf / faktenhaus.de) — sponsored the original extension
-- **b13.de** — connected all the people involved
-- **Elias Häußler** (haeussler.dev) — TYPO3 v11 compatibility and [TYPO3 badges](https://typo3-badges.dev)
-- **Uwe** (Hawkeye1909) — removed jQuery as a dependency
-- **Alexander Opitz** (extrameile-gehen.de) — SaveToDatabaseFinisher for repeatable elements
-- **Falko Linke, Christian Seyfferth** (dreistrom.land) — ongoing development
-
-And everyone else who has contributed to improving this extension.
+This fork is maintained by [move:elevator](https://move-elevator.de).
 
 ## 📄 License
 
