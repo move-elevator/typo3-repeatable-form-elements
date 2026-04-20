@@ -10,6 +10,8 @@ namespace TRITUM\RepeatableFormElements\Hooks;
  * For the full copyright and license information, please read the
  * LICENSE.txt file that was distributed with this source code.
  */
+use Psr\EventDispatcher\EventDispatcherInterface;
+use TRITUM\RepeatableFormElements\Event\AfterBuildingFinishedEvent;
 use TRITUM\RepeatableFormElements\FormElements\RepeatableContainerInterface;
 use TRITUM\RepeatableFormElements\Service\CopyService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -125,12 +127,17 @@ class FormHooks
                 $renderable->addValidator($validator);
             }
 
+            // Legacy hook (v13 compat, no-op in v14)
             foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
                 $hookObj = GeneralUtility::makeInstance($className);
                 if (method_exists($hookObj, 'afterBuildingFinished')) {
                     $hookObj->afterBuildingFinished($renderable);
                 }
             }
+            // PSR-14 event (v13 + v14)
+            GeneralUtility::makeInstance(EventDispatcherInterface::class)->dispatch(
+                new AfterBuildingFinishedEvent($renderable)
+            );
         }
 
         if ($renderable instanceof CompositeRenderableInterface) {
