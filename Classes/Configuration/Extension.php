@@ -56,6 +56,9 @@ final class Extension
 
     public static function registerHooks(): void
     {
+        // These hooks are still supported in TYPO3 v13 and v14.
+        // When TYPO3 introduces PSR-14 replacements, migrate to event listeners
+        // registered in Configuration/Services.yaml.
         $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterInitializeCurrentPage'][1511196413] = FormHooks::class;
         $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['beforeRendering'][1511196413] = FormHooks::class;
     }
