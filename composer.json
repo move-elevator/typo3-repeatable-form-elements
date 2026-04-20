@@ -34,6 +34,13 @@
         "typo3/cms-extbase": "^13.4 || ^14.0",
         "typo3/cms-form": "^13.4 || ^14.0"
     },
+    "require-dev": {
+        "eliashaeussler/version-bumper": "^2.4 || ^3.0",
+        "phpunit/phpunit": "^11.0 || ^12.0",
+        "typo3/cms-base-distribution": "^13.4 || ^14.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "TRITUM\\RepeatableFormElements\\": "Classes/"
@@ -41,14 +48,26 @@
     },
     "config": {
         "allow-plugins": {
+            "eliashaeussler/version-bumper": true,
             "typo3/class-alias-loader": true,
             "typo3/cms-composer-installers": true
         },
         "sort-packages": true
     },
     "extra": {
+        "konradmichalik/php-cs-fixer-preset": {
+            "copyright": 2018
+        },
         "typo3/cms": {
             "extension-key": "repeatable_form_elements"
         }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@cgl install"
+        ],
+        "cgl": "@composer -d Tests/CGL --",
+        "test": "@test:coverage --no-coverage",
+        "test:coverage": "XDEBUG_MODE=coverage phpunit -c phpunit.xml"
     }
 }

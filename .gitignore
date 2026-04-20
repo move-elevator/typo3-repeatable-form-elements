@@ -1,4 +1,6 @@
+.Build/
+.claude
+/composer.lock
 /public
 /vendor
-/composer.lock
-.Build/
+/Tests/CGL/vendor
