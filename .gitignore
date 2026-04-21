@@ -1,7 +1,6 @@
 .Build/
 .claude
 .idea
-/composer.lock
 /public
 !Resources/Public
 /vendor
