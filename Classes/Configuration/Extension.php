@@ -28,8 +28,14 @@ final class Extension
 
     public static function addTypoScriptSetup(): void
     {
-        // @todo: maybe move this to 'EXT:repeatable_form_elements/ext_typoscript_setup.typoscript'
         ExtensionManagementUtility::addTypoScriptSetup(trim('
+            plugin.tx_form {
+                settings {
+                    yamlConfigurations {
+                        1511193633 = EXT:repeatable_form_elements/Configuration/Yaml/FormSetup.yaml
+                    }
+                }
+            }
             module.tx_form {
                 settings {
                     yamlConfigurations {
@@ -43,9 +49,9 @@ final class Extension
 
     public static function registerHooks(): void
     {
-        // These hooks are still supported in TYPO3 v13 and v14.
-        // When TYPO3 introduces PSR-14 replacements, migrate to event listeners
-        // registered in Configuration/Services.yaml.
+        // v13: these SC_OPTIONS hooks are the active mechanism.
+        // v14: these hooks were removed (Breaking #107566, #107569).
+        //      The PSR-14 event listeners in Configuration/Services.yaml take over.
         $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterInitializeCurrentPage'][1511196413] = FormHooks::class;
         $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['beforeRendering'][1511196413] = FormHooks::class;
     }
