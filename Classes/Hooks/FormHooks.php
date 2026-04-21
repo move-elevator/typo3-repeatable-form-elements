@@ -102,8 +102,8 @@ final class FormHooks
             $this->rewriteRenderableIdentifier($renderable, $formRuntime, $copyService, $repeatableContainerIdentifiers, $isRepeatableContainer);
         }
 
-        if ($renderable instanceof RepeatableContainerInterface) {
-            foreach ($renderable->getElements() as $childRenderable) {
+        if ($renderable instanceof CompositeRenderableInterface) {
+            foreach ($renderable->getElements() as $childRenderable) { // @phpstan-ignore method.notFound
                 $this->setRootRepeatableContainerIdentifiers($childRenderable, $formRuntime, $copyService, $repeatableContainerIdentifiers);
             }
         }

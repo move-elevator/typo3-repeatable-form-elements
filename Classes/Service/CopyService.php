@@ -128,8 +128,8 @@ class CopyService // @phpstan-ignore complexity.classLike
     }
 
     /**
-     * @param array<string, mixed>   $requestArguments
-     * @param array<int, string|int> $argumentPath
+     * @param array<string|int, mixed> $requestArguments
+     * @param array<int, string|int>   $argumentPath
      */
     protected function copyRepeatableContainersFromArguments(
         array $requestArguments,
@@ -140,7 +140,7 @@ class CopyService // @phpstan-ignore complexity.classLike
                 continue;
             }
 
-            $originalContainer = $this->getRepeatableContainerByOriginalIdentifier($argumentKey);
+            $originalContainer = $this->getRepeatableContainerByOriginalIdentifier((string) $argumentKey);
             $copyIndexes = array_keys($argumentValue);
             unset($copyIndexes[0]);
             $argumentPath[] = $argumentKey;
@@ -281,8 +281,8 @@ class CopyService // @phpstan-ignore complexity.classLike
     }
 
     /**
-     * @param array<string, mixed>   $requestArguments
-     * @param array<int, string|int> $argumentPath
+     * @param array<string|int, mixed> $requestArguments
+     * @param array<int, string|int>   $argumentPath
      */
     protected function removeDeletedRepeatableContainersFromFormValuesByRequest(
         array $requestArguments,
@@ -293,7 +293,7 @@ class CopyService // @phpstan-ignore complexity.classLike
                 continue;
             }
 
-            $originalContainer = $this->getRepeatableContainerByOriginalIdentifier($argumentKey);
+            $originalContainer = $this->getRepeatableContainerByOriginalIdentifier((string) $argumentKey);
             $argumentPath[] = $argumentKey;
             $copyIndexes = array_keys($argumentValue);
 
