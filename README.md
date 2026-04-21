@@ -1,6 +1,6 @@
 <div align="center">
 
-![Extension icon](Resources/Public/Icons/Extension.svg)
+<img src="Resources/Public/Icons/Extension.svg" width="100" alt="Extension icon">
 
 # TYPO3 extension `repeatable_form_elements`
 
