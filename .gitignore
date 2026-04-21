@@ -1,6 +1,11 @@
 .Build/
 .claude
+.idea
 /composer.lock
 /public
+!Resources/Public
 /vendor
+/var
 /Tests/CGL/vendor
+.phpunit.result.cache
+Tests/CGL/.php-cs-fixer.cache
