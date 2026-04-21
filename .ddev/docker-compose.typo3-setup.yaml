@@ -4,7 +4,7 @@ services:
         environment:
             - EXTENSION_KEY=repeatable_form_elements
             - EXTENSION_NAME=repeatable-form-elements
-            - PACKAGE_NAME=tritum/repeatable-form-elements
+            - PACKAGE_NAME=move-elevator/typo3-repeatable-form-elements
             - TYPO3_VERSIONS=13 14
             - SYMLINK_EXCLUSIONS=.* Documentation Documentation-GENERATED-temp var vendor public
 
