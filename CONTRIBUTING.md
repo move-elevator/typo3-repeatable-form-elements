@@ -12,8 +12,8 @@ Please note that this project adheres to the [TYPO3 Code of Conduct](https://typ
 
 ```bash
 # Clone repository
-git clone https://github.com/tritum/repeatable_form_elements.git
-cd repeatable_form_elements
+git clone https://github.com/move-elevator/typo3-repeatable-form-elements.git
+cd typo3-repeatable-form-elements
 
 # Start the project with DDEV
 ddev start
@@ -84,7 +84,7 @@ ddev all typo3 database:updateschema
 
 ## Workflow
 
-1. Fork the repository and create a feature branch from `master`.
+1. Fork the repository and create a feature branch from `main`.
 2. Make your changes and ensure all linters and tests pass.
 3. Use descriptive commit messages following the conventional commits format: `<type>: <description>` (e.g. `feat: add nested repeatable container support`, `fix: resolve copy button state after removal`).
 
