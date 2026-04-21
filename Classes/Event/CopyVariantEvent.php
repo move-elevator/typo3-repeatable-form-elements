@@ -2,9 +2,18 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
+ *
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TRITUM\RepeatableFormElements\Event;
 
-/**
+/*
  * This file is part of the "repeatable_form_elements" Extension for TYPO3 CMS.
  *
  * For the full copyright and license information, please read the
@@ -14,33 +23,40 @@ namespace TRITUM\RepeatableFormElements\Event;
 use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
 
 /**
- * Use this event to manipulate variantOptions on copying form elements
+ * CopyVariantEvent.
+ *
+ * @author Konrad Michalik <km@move-elevator.de>
  */
 class CopyVariantEvent
 {
-    private array $options;
-    private FormElementInterface $originalFormElement;
-    private FormElementInterface $newFormElement;
-    private string $newIdentifier;
+    private readonly FormElementInterface $originalFormElement;
+    private readonly FormElementInterface $newFormElement;
     private bool $variantEnabled = true;
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function __construct(
-        array $options,
+        private array $options,
         FormElementInterface $originalFormElement,
         FormElementInterface $newFormElement,
-        string $newIdentifier,
+        private readonly string $newIdentifier,
     ) {
-        $this->options = $options;
         $this->originalFormElement = $originalFormElement;
         $this->newFormElement = $newFormElement;
-        $this->newIdentifier = $newIdentifier;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
         return $this->options;
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function setOptions(array $options): void
     {
         $this->options = $options;

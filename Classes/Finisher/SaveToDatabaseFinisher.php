@@ -9,21 +9,36 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
+ *
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TRITUM\RepeatableFormElements\Finisher;
 
 use DateTimeInterface;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
 
+use function is_array;
+use function is_int;
+use function is_string;
+
 /**
- * This finisher is an extension to the default SaveToDatabaseFinisher.
- * It is intentionally registered as a new identifier to keep compatibility with existing forms.
+ * SaveToDatabaseFinisher.
+ *
+ * @author Konrad Michalik <km@move-elevator.de>
  */
 class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToDatabaseFinisher
 {
+    public function __construct(private readonly ConnectionPool $connectionPool) {}
+
     protected function process(int $iterationCount): void
     {
         $this->throwExceptionOnInconsistentConfiguration();
@@ -31,16 +46,17 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
         $table = $this->parseOption('table');
         $table = is_string($table) ? $table : '';
         $elementsConfiguration = $this->parseOption('elements');
-        $elementsConfiguration  = is_array($elementsConfiguration) ? $elementsConfiguration : [];
+        $elementsConfiguration = is_array($elementsConfiguration) ? $elementsConfiguration : [];
         $databaseColumnMappingsConfiguration = $this->parseOption('databaseColumnMappings');
 
-        $this->databaseConnection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable($table);
+        $this->databaseConnection = $this->connectionPool->getConnectionForTable($table);
 
         $databaseData = [];
+        $databaseColumnMappingsConfiguration = is_array($databaseColumnMappingsConfiguration) ? $databaseColumnMappingsConfiguration : [];
         foreach ($databaseColumnMappingsConfiguration as $databaseColumnName => $databaseColumnConfiguration) {
-            $value = $this->parseOption('databaseColumnMappings.' . $databaseColumnName . '.value');
+            $value = $this->parseOption('databaseColumnMappings.'.$databaseColumnName.'.value');
             if (
-                empty($value)
+                (null === $value || '' === $value)
                 && ($databaseColumnConfiguration['skipIfValueIsEmpty'] ?? false) === true
             ) {
                 continue;
@@ -51,23 +67,23 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
 
         // decide which strategy to use
         $containerConfiguration = $this->parseOption('container');
-        if (!empty($containerConfiguration) && is_string($containerConfiguration)) {
+        if (is_string($containerConfiguration) && '' !== $containerConfiguration) {
             $this->processContainer($containerConfiguration, $elementsConfiguration, $databaseData, $table, $iterationCount);
         } else {
             $databaseData = $this->prepareData($elementsConfiguration, $databaseData);
 
             $this->saveToDatabase($databaseData, $table, $iterationCount);
         }
-
     }
 
     /**
-     * This action will do mostly the same processing as the default processing but we need to set prefix for the finisher to find the correct element
-     * @param string $containerPath the identifier of the container to process, can be for example `RootContainer` or `RootContainer.0.NestedContainer`
-     * @param array $elementsConfiguration finisher-element-configuration
-     * @param array $databaseData prepared data
-     * @param string $table Tablename to save data to
-     * @param int $iterationCount finisher iteration
+     * This action will do mostly the same processing as the default processing but we need to set prefix for the finisher to find the correct element.
+     *
+     * @param string               $containerPath         the identifier of the container to process, can be for example `RootContainer` or `RootContainer.0.NestedContainer`
+     * @param array<string, mixed> $elementsConfiguration finisher-element-configuration
+     * @param array<string, mixed> $databaseData          prepared data
+     * @param string               $table                 Tablename to save data to
+     * @param int                  $iterationCount        finisher iteration
      */
     protected function processContainer(
         string $containerPath,
@@ -78,7 +94,7 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
     ): void {
         $containerValues = ArrayUtility::getValueByPath($this->getFormValues(), $containerPath, '.');
         foreach ($containerValues as $copyId => $containerItem) {
-            $prefix = $containerPath . '.' . $copyId . '.';
+            $prefix = $containerPath.'.'.$copyId.'.';
             // store data inside new array to keep prepared $databaseData for all iterations
             $itemDatabaseData = $this->prepareData($elementsConfiguration, $databaseData, $containerItem, $prefix);
 
@@ -88,19 +104,20 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
 
     /**
      * Adapted method for container data.
-     * @param array $elementsConfiguration finisher element configuration
-     * @param array $databaseData prepared data
-     * @param array $values optional filled Array with form values to use
-     * @param string $prefix prefix to get the form element object by a full identifier
-     * @return array the filled database data
+     *
+     * @param array<array-key, mixed> $databaseData prepared data
+     * @param array<string, mixed>    $values       optional filled Array with form values to use
+     * @param string                  $prefix       prefix to get the form element object by a full identifier
+     *
+     * @return array<string, mixed> the filled database data
      */
-    protected function prepareData(
+    protected function prepareData(// @phpstan-ignore missingType.iterableValue
         array $elementsConfiguration,
         array $databaseData,
         array $values = [],
         string $prefix = '',
     ): array {
-        if (empty($values)) {
+        if ([] === $values) {
             $values = $this->getFormValues();
         }
 
@@ -109,25 +126,7 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
                 continue;
             }
 
-            if ($elementValue instanceof FileReference) {
-                if (isset($elementsConfiguration[$elementIdentifier]['saveFileIdentifierInsteadOfUid'])) {
-                    $saveFileIdentifierInsteadOfUid = (bool)$elementsConfiguration[$elementIdentifier]['saveFileIdentifierInsteadOfUid'];
-                } else {
-                    $saveFileIdentifierInsteadOfUid = false;
-                }
-
-                if ($saveFileIdentifierInsteadOfUid) {
-                    $elementValue = $elementValue->getOriginalResource()->getCombinedIdentifier();
-                } else {
-                    $elementValue = $elementValue->getOriginalResource()->getProperty('uid_local');
-                }
-            } elseif (is_array($elementValue)) {
-                $elementValue = implode(',', $elementValue);
-            } elseif ($elementValue instanceof DateTimeInterface) {
-                $format = $elementsConfiguration[$elementIdentifier]['dateFormat'] ?? 'U';
-                $elementValue = $elementValue->format($format);
-            }
-
+            $elementValue = $this->resolveElementValue($elementValue, $elementsConfiguration[$elementIdentifier] ?? []);
             $databaseData[$elementsConfiguration[$elementIdentifier]['mapOnDatabaseColumn']] = $elementValue;
         }
 
@@ -137,56 +136,79 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
     /**
      * Save or insert the values from
      * $databaseData into the table $table
-     * and provide some finisher variables
+     * and provide some finisher variables.
      */
-    protected function saveToDatabase(
+    protected function saveToDatabase(// @phpstan-ignore missingType.iterableValue
         array $databaseData,
         string $table,
         int $iterationCount,
         ?int $containerItemKey = null,
     ): void {
-        if (!empty($databaseData)) {
-            if ($this->parseOption('mode') === 'update') {
-                $whereClause = $this->parseOption('whereClause');
-                foreach ($whereClause as $columnName => $columnValue) {
-                    $whereClause[$columnName] = $this->parseOption('whereClause.' . $columnName);
-                }
-                $this->databaseConnection->update(
-                    $table,
-                    $databaseData,
-                    $whereClause,
-                );
-            } else {
-                $this->databaseConnection->insert($table, $databaseData);
-                $insertedUid = (int)$this->databaseConnection->lastInsertId($table);
-                $this->finisherContext->getFinisherVariableProvider()->add(
-                    $this->shortFinisherIdentifier,
-                    'insertedUids.' . $iterationCount . (is_int($containerItemKey) ? '.' . $containerItemKey : ''),
-                    $insertedUid,
-                );
+        if ([] === $databaseData) {
+            return;
+        }
 
-                $currentCount = $this->finisherContext->getFinisherVariableProvider()->get(
-                    $this->shortFinisherIdentifier,
-                    'countInserts.',
-                    $iterationCount,
-                    0,
-                );
-                $this->finisherContext->getFinisherVariableProvider()->addOrUpdate(
-                    $this->shortFinisherIdentifier,
-                    'countInserts.' . $iterationCount,
-                    $currentCount++,
-                );
+        if ('update' === $this->parseOption('mode')) {
+            $whereClause = $this->parseOption('whereClause');
+            $whereClause = is_array($whereClause) ? $whereClause : [];
+            /** @var array<string, mixed> $resolvedWhereClause */
+            $resolvedWhereClause = [];
+            foreach ($whereClause as $columnName => $columnValue) {
+                $resolvedWhereClause[(string) $columnName] = $this->parseOption('whereClause.'.$columnName);
             }
+            $this->databaseConnection->update(
+                $table,
+                $databaseData,
+                $resolvedWhereClause,
+            );
+        } else {
+            $this->databaseConnection->insert($table, $databaseData);
+            $insertedUid = (int) $this->databaseConnection->lastInsertId();
+            $this->finisherContext->getFinisherVariableProvider()->add(
+                $this->shortFinisherIdentifier,
+                'insertedUids.'.$iterationCount.(is_int($containerItemKey) ? '.'.$containerItemKey : ''),
+                $insertedUid,
+            );
+
+            $currentCount = (int) $this->finisherContext->getFinisherVariableProvider()->get(
+                $this->shortFinisherIdentifier,
+                'countInserts.'.$iterationCount,
+            );
+            $this->finisherContext->getFinisherVariableProvider()->addOrUpdate(
+                $this->shortFinisherIdentifier,
+                'countInserts.'.$iterationCount,
+                $currentCount + 1,
+            );
         }
     }
 
+    private function resolveElementValue(mixed $elementValue, mixed $elementConfig): mixed
+    {
+        if ($elementValue instanceof FileReference) {
+            $saveFileIdentifierInsteadOfUid = (bool) ($elementConfig['saveFileIdentifierInsteadOfUid'] ?? false);
+
+            return $saveFileIdentifierInsteadOfUid
+                ? $elementValue->getOriginalResource()->getCombinedIdentifier()
+                : $elementValue->getOriginalResource()->getProperty('uid_local');
+        }
+
+        if (is_array($elementValue)) {
+            return implode(',', $elementValue);
+        }
+
+        if ($elementValue instanceof DateTimeInterface) {
+            $format = $elementConfig['dateFormat'] ?? 'U';
+
+            return $elementValue->format($format);
+        }
+
+        return $elementValue;
+    }
+
     /**
-     * This will check if a element shall or can be handled
-     * @param mixed $elementValue
-     * @param array $elementsConfiguration
-     * @param string $elementIdentifier
-     * @param string $prefix
-     * @return array
+     * This will check if a element shall or can be handled.
+     *
+     * @param array<string, mixed> $elementsConfiguration
      */
     private function canValueBeHandled(mixed $elementValue, array $elementsConfiguration, string $elementIdentifier, string $prefix): bool
     {
@@ -196,14 +218,14 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
         }
 
         if (
-            ($elementValue === null || $elementValue === '')
+            (null === $elementValue || '' === $elementValue)
             && isset($elementConfig['skipIfValueIsEmpty'])
-            && $elementConfig['skipIfValueIsEmpty'] === true
+            && true === $elementConfig['skipIfValueIsEmpty']
         ) {
             return false;
         }
 
-        $element = $this->getElementByIdentifier($prefix . $elementIdentifier);
+        $element = $this->getElementByIdentifier($prefix.$elementIdentifier);
         if (!($element instanceof FormElementInterface) || !isset($elementConfig['mapOnDatabaseColumn'])) {
             return false;
         }

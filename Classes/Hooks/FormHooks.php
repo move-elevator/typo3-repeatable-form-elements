@@ -2,9 +2,18 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
+ *
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TRITUM\RepeatableFormElements\Hooks;
 
-/**
+/*
  * This file is part of the "repeatable_form_elements" Extension for TYPO3 CMS.
  *
  * For the full copyright and license information, please read the
@@ -17,22 +26,20 @@ use TRITUM\RepeatableFormElements\Service\CopyService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface;
 use TYPO3\CMS\Form\Domain\Model\Exception\DuplicateFormElementException;
-use TYPO3\CMS\Form\Domain\Model\FormElements\AbstractFormElement;
-use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
-use TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface;
-use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
-use TYPO3\CMS\Form\Domain\Model\Renderable\RootRenderableInterface;
+use TYPO3\CMS\Form\Domain\Model\FormElements\{AbstractFormElement, FormElementInterface};
+use TYPO3\CMS\Form\Domain\Model\Renderable\{AbstractRenderable, CompositeRenderableInterface, RenderableInterface, RootRenderableInterface};
 use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
 
+/**
+ * FormHooks.
+ *
+ * @author Konrad Michalik <km@move-elevator.de>
+ */
 final class FormHooks
 {
     /**
-     * @param FormRuntime $formRuntime
-     * @param CompositeRenderableInterface|null $currentPage
-     * @param CompositeRenderableInterface|null $lastPage
-     * @param array $rawRequestArguments
+     * @param array<string, mixed> $rawRequestArguments
      *
-     * @return CompositeRenderableInterface|null
      * @throws DuplicateFormElementException
      */
     public function afterInitializeCurrentPage(
@@ -46,7 +53,7 @@ final class FormHooks
         }
 
         // first request
-        if (!$lastPage) {
+        if (null === $lastPage) {
             return $currentPage;
         }
 
@@ -60,10 +67,6 @@ final class FormHooks
         return $currentPage;
     }
 
-    /**
-     * @param FormRuntime $formRuntime
-     * @param RootRenderableInterface $renderable
-     */
     public function beforeRendering(FormRuntime $formRuntime, RootRenderableInterface $renderable): void
     {
         if ($renderable instanceof FormElementInterface) {
@@ -71,8 +74,8 @@ final class FormHooks
 
             $fluidAdditionalAttributes = $properties['fluidAdditionalAttributes'] ?? [];
             $fluidAdditionalAttributes['data-element-type'] = $renderable->getType();
-            if ($renderable->getType() === 'DatePicker') {
-                $fluidAdditionalAttributes['data-element-datepicker-enabled'] = (int)$renderable->getProperties()['enableDatePicker'];
+            if ('DatePicker' === $renderable->getType()) {
+                $fluidAdditionalAttributes['data-element-datepicker-enabled'] = (int) $renderable->getProperties()['enableDatePicker'];
                 $fluidAdditionalAttributes['data-element-datepicker-date-format'] = $renderable->getProperties()['dateFormat'];
             }
 
@@ -81,13 +84,11 @@ final class FormHooks
     }
 
     /**
-     * @param RenderableInterface $renderable
-     * @param FormRuntime $formRuntime
-     * @param array $repeatableContainerIdentifiers
+     * @param array<int, string> $repeatableContainerIdentifiers
      *
      * @throws DuplicateFormElementException
      */
-    protected function setRootRepeatableContainerIdentifiers(
+    private function setRootRepeatableContainerIdentifiers(
         RenderableInterface $renderable,
         FormRuntime $formRuntime,
         array $repeatableContainerIdentifiers = [],
@@ -98,49 +99,16 @@ final class FormHooks
         if ($isRepeatableContainer) {
             $repeatableContainerIdentifiers[] = $renderable->getIdentifier();
             if (!$hasOriginalIdentifier) {
-                $renderable->setRenderingOption('_isRootRepeatableContainer', true);
-                $renderable->setRenderingOption('_isReferenceContainer', true);
+                $renderable->setRenderingOption('_isRootRepeatableContainer', true); // @phpstan-ignore method.notFound
+                $renderable->setRenderingOption('_isReferenceContainer', true); // @phpstan-ignore method.notFound
             }
         }
 
-        if (!empty($repeatableContainerIdentifiers) && !$hasOriginalIdentifier) {
-            $newIdentifier = implode('.0.', $repeatableContainerIdentifiers) . '.0';
-            if (!$isRepeatableContainer) {
-                $newIdentifier .= '.' . $renderable->getIdentifier();
-            }
-            $originalIdentifier = $renderable->getIdentifier();
-            $renderable->setRenderingOption('_originalIdentifier', $originalIdentifier);
-
-            if ($renderable instanceof AbstractFormElement && $renderable->getDefaultValue()) {
-                $formRuntime->getFormDefinition()->addElementDefaultValue($newIdentifier, $renderable->getDefaultValue());
-            }
-
-            $formRuntime->getFormDefinition()->unregisterRenderable($renderable);
-            $renderable->setIdentifier($newIdentifier);
-            $formRuntime->getFormDefinition()->registerRenderable($renderable);
-
-            $copyService = GeneralUtility::makeInstance(CopyService::class, $formRuntime);
-            [$originalProcessingRule] = $copyService->copyProcessingRule($originalIdentifier, $newIdentifier);
-
-            /** @var ValidatorInterface $validator */
-            foreach ($originalProcessingRule->getValidators() as $validator) {
-                $renderable->addValidator($validator);
-            }
-
-            // Legacy hook (v13 compat, no-op in v14)
-            foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
-                $hookObj = GeneralUtility::makeInstance($className);
-                if (method_exists($hookObj, 'afterBuildingFinished')) {
-                    $hookObj->afterBuildingFinished($renderable);
-                }
-            }
-            // PSR-14 event (v13 + v14)
-            GeneralUtility::makeInstance(EventDispatcherInterface::class)->dispatch(
-                new AfterBuildingFinishedEvent($renderable)
-            );
+        if ([] !== $repeatableContainerIdentifiers && !$hasOriginalIdentifier) {
+            $this->rewriteRenderableIdentifier($renderable, $formRuntime, $repeatableContainerIdentifiers, $isRepeatableContainer);
         }
 
-        if ($renderable instanceof CompositeRenderableInterface) {
+        if ($renderable instanceof RepeatableContainerInterface) {
             foreach ($renderable->getElements() as $childRenderable) {
                 $this->setRootRepeatableContainerIdentifiers($childRenderable, $formRuntime, $repeatableContainerIdentifiers);
             }
@@ -148,21 +116,68 @@ final class FormHooks
     }
 
     /**
-     * returns TRUE if the user went back to any previous step in the form.
+     * @param array<int, string> $repeatableContainerIdentifiers
      *
-     * @param FormRuntime $formRuntime
-     * @param CompositeRenderableInterface|null $currentPage
-     * @param CompositeRenderableInterface|null $lastPage
-     *
-     * @return bool
+     * @throws DuplicateFormElementException
      */
-    protected function userWentBackToPreviousStep(
+    private function rewriteRenderableIdentifier(
+        RenderableInterface $renderable,
+        FormRuntime $formRuntime,
+        array $repeatableContainerIdentifiers,
+        bool $isRepeatableContainer,
+    ): void {
+        if (!$renderable instanceof AbstractRenderable) {
+            return;
+        }
+
+        $newIdentifier = implode('.0.', $repeatableContainerIdentifiers).'.0';
+        if (!$isRepeatableContainer) {
+            $newIdentifier .= '.'.$renderable->getIdentifier();
+        }
+        $originalIdentifier = $renderable->getIdentifier();
+        $renderable->setRenderingOption('_originalIdentifier', $originalIdentifier);
+
+        if ($renderable instanceof AbstractFormElement && null !== $renderable->getDefaultValue()) {
+            $formRuntime->getFormDefinition()->addElementDefaultValue($newIdentifier, $renderable->getDefaultValue());
+        }
+
+        $formRuntime->getFormDefinition()->unregisterRenderable($renderable);
+        $renderable->setIdentifier($newIdentifier);
+        $formRuntime->getFormDefinition()->registerRenderable($renderable);
+
+        $copyService = GeneralUtility::makeInstance(CopyService::class, $formRuntime);
+        [$originalProcessingRule] = $copyService->copyProcessingRule($originalIdentifier, $newIdentifier);
+
+        if ($renderable instanceof FormElementInterface) {
+            /** @var ValidatorInterface $validator */
+            foreach ($originalProcessingRule->getValidators() as $validator) {
+                $renderable->addValidator($validator);
+            }
+        }
+
+        // Legacy hook (v13 compat, no-op in v14)
+        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
+            $hookObj = GeneralUtility::makeInstance($className); // @phpstan-ignore argument.templateType
+            if (method_exists($hookObj, 'afterBuildingFinished')) {
+                $hookObj->afterBuildingFinished($renderable);
+            }
+        }
+        // PSR-14 event (v13 + v14)
+        GeneralUtility::makeInstance(EventDispatcherInterface::class)->dispatch(
+            new AfterBuildingFinishedEvent($renderable),
+        );
+    }
+
+    /**
+     * returns TRUE if the user went back to any previous step in the form.
+     */
+    private function userWentBackToPreviousStep(
         FormRuntime $formRuntime,
         ?CompositeRenderableInterface $currentPage = null,
         ?CompositeRenderableInterface $lastPage = null,
     ): bool {
-        return $currentPage !== null
-                && $lastPage !== null
+        return null !== $currentPage
+                && null !== $lastPage
                 && $currentPage->getIndex() < $lastPage->getIndex();
     }
 }
