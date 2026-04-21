@@ -2,19 +2,29 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
+ *
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TRITUM\RepeatableFormElements\EventListener;
 
 use TRITUM\RepeatableFormElements\Hooks\FormHooks;
 use TYPO3\CMS\Form\Event\BeforeRenderableIsRenderedEvent;
 
 /**
- * PSR-14 replacement for the beforeRendering SC_OPTIONS hook.
- * This event listener is used in TYPO3 v14+ where the hook was removed.
+ * BeforeRenderableIsRenderedListener.
+ *
+ * @author Konrad Michalik <km@move-elevator.de>
  */
-final class BeforeRenderableIsRenderedListener
+final readonly class BeforeRenderableIsRenderedListener
 {
     public function __construct(
-        private readonly FormHooks $formHooks,
+        private FormHooks $formHooks,
     ) {}
 
     public function __invoke(BeforeRenderableIsRenderedEvent $event): void

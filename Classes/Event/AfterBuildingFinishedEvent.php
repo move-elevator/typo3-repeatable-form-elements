@@ -2,20 +2,27 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
+ *
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TRITUM\RepeatableFormElements\Event;
 
 use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
 
 /**
- * Dispatched after a form renderable has been built/copied by the repeatable container logic.
+ * AfterBuildingFinishedEvent.
  *
- * This event replaces the former SC_OPTIONS hook
- * $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished']
- * which was removed in TYPO3 v14 (Breaking #98239).
+ * @author Konrad Michalik <km@move-elevator.de>
  */
-final class AfterBuildingFinishedEvent
+final readonly class AfterBuildingFinishedEvent
 {
     public function __construct(
-        public readonly RenderableInterface $renderable,
+        public RenderableInterface $renderable,
     ) {}
 }
