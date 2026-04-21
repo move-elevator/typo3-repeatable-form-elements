@@ -2,9 +2,18 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
+ *
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace TRITUM\RepeatableFormElements\EventListener;
 
-/**
+/*
  * This file is part of the "repeatable_form_elements" Extension for TYPO3 CMS.
  *
  * For the full copyright and license information, please read the
@@ -14,15 +23,17 @@ namespace TRITUM\RepeatableFormElements\EventListener;
 use TRITUM\RepeatableFormElements\Event\CopyVariantEvent;
 
 /**
- * Replace original identifiers inside variant condition with identifiers of new element
+ * AdaptVariantConditionEventListener.
  *
  * @param CopyVariantEvent $event
+ *
+ * @author Konrad Michalik <km@move-elevator.de>
  */
 final class AdaptVariantConditionEventListener
 {
     public function __invoke(CopyVariantEvent $event): void
     {
-        $options            = $event->getOptions();
+        $options = $event->getOptions();
         $originalIdentifier = $event->getOriginalFormElement()->getIdentifier();
 
         // get path strings for identifiers for replacement in condition

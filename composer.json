@@ -1,54 +1,61 @@
 {
-    "name": "tritum/repeatable-form-elements",
+    "name": "move-elevator/typo3-repeatable-form-elements",
     "description": "Adds a new form element which allows the editor to create new container elements with any type fields in them. In the frontend, a user can create any number of new containers. This is an extension for TYPO3 CMS.",
     "license": "GPL-2.0-or-later",
     "type": "typo3-cms-extension",
     "authors": [
         {
-            "name": "Ralf Zimmermann",
-            "email": "r.zimmermann@dreistrom.land",
-            "homepage": "https://dreistrom.land",
-            "role": "Developer"
-        },
-        {
-            "name": "Falko Linke",
-            "email": "f.linke@dreistrom.land",
-            "homepage": "https://dreistrom.land",
-            "role": "Developer"
-        },
-        {
-            "name": "Elias Häußler",
-            "email": "elias@haeussler.dev",
-            "homepage": "https://haeussler.dev",
-            "role": "Developer"
-        },
-        {
-            "name": "Christian Seyfferth",
-            "email": "c.seyfferth@dreistrom.land",
-            "homepage": "https://dreistrom.land",
-            "role": "Developer"
+            "name": "Konrad Michalik",
+            "email": "km@move-elevator.de",
+            "role": "Maintainer"
         }
     ],
     "require": {
+        "php": "~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
+        "psr/event-dispatcher": "^1.0",
         "typo3/cms-core": "^13.4 || ^14.0",
         "typo3/cms-extbase": "^13.4 || ^14.0",
         "typo3/cms-form": "^13.4 || ^14.0"
     },
+    "require-dev": {
+        "eliashaeussler/version-bumper": "^2.4 || ^3.0",
+        "phpunit/phpunit": "^11.0 || ^12.0",
+        "typo3/cms-base-distribution": "^13.4 || ^14.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "TRITUM\\RepeatableFormElements\\": "Classes/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "TRITUM\\RepeatableFormElements\\Tests\\": "Tests/"
+        }
+    },
     "config": {
         "allow-plugins": {
+            "eliashaeussler/version-bumper": true,
             "typo3/class-alias-loader": true,
             "typo3/cms-composer-installers": true
         },
         "sort-packages": true
     },
     "extra": {
+        "konradmichalik/php-cs-fixer-preset": {
+            "copyright": 2018
+        },
         "typo3/cms": {
             "extension-key": "repeatable_form_elements"
         }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@cgl install"
+        ],
+        "cgl": "@composer -d Tests/CGL --",
+        "test": "@test:coverage --no-coverage",
+        "test:coverage": "XDEBUG_MODE=coverage phpunit -c phpunit.xml"
     }
 }

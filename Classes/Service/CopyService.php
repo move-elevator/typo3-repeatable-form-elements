@@ -2,52 +2,63 @@
 
 declare(strict_types=1);
 
-namespace TRITUM\RepeatableFormElements\Service;
-
-/**
- * This file is part of the "repeatable_form_elements" Extension for TYPO3 CMS.
+/*
+ * This file is part of the "repeatable_form_elements" TYPO3 CMS extension.
  *
- * For the full copyright and license information, please read the
- * LICENSE.txt file that was distributed with this source code.
+ * (c) 2018-2026 Konrad Michalik <km@move-elevator.de>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
+namespace TRITUM\RepeatableFormElements\Service;
+
 use Psr\EventDispatcher\EventDispatcherInterface;
-use TRITUM\RepeatableFormElements\Event\AfterBuildingFinishedEvent;
-use TRITUM\RepeatableFormElements\Event\CopyVariantEvent;
+use ReflectionClass;
+use TRITUM\RepeatableFormElements\Event\{AfterBuildingFinishedEvent, CopyVariantEvent};
 use TRITUM\RepeatableFormElements\FormElements\RepeatableContainerInterface;
+use TypeError;
 use TYPO3\CMS\Core\Configuration\Features;
-use TYPO3\CMS\Core\Utility\ArrayUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\{ArrayUtility, GeneralUtility};
 use TYPO3\CMS\Extbase\Error\Error;
 use TYPO3\CMS\Extbase\Property\PropertyMappingConfiguration;
 use TYPO3\CMS\Extbase\Validation\Validator\ValidatorInterface;
 use TYPO3\CMS\Form\Domain\Model\FormDefinition;
 use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
-use TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface;
-use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
-use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableVariant;
-use TYPO3\CMS\Form\Domain\Runtime\FormRuntime;
-use TYPO3\CMS\Form\Domain\Runtime\FormState;
+use TYPO3\CMS\Form\Domain\Model\Renderable\{CompositeRenderableInterface, RenderableInterface, RenderableVariant};
+use TYPO3\CMS\Form\Domain\Runtime\{FormRuntime, FormState};
 use TYPO3\CMS\Form\Mvc\ProcessingRule;
 use TYPO3\CMS\Form\Service\TranslationService;
 
-class CopyService
+use function array_key_exists;
+use function assert;
+use function count;
+use function in_array;
+use function is_array;
+
+/**
+ * CopyService.
+ *
+ * @author Konrad Michalik <km@move-elevator.de>
+ */
+class CopyService // @phpstan-ignore complexity.classLike
 {
     protected FormRuntime $formRuntime;
-    protected ?FormState $formState;
+    protected FormState $formState;
     protected FormDefinition $formDefinition;
+    /** @var array<string, RepeatableContainerInterface|null> */
     protected array $repeatableContainersByOriginalIdentifier = [];
+    /** @var array<string, array<string, mixed>> */
     protected array $typeDefinitions = [];
     protected Features $features;
     protected EventDispatcherInterface $eventDispatcher;
 
-    /**
-     * @param FormRuntime $formRuntime
-     */
     public function __construct(FormRuntime $formRuntime)
     {
         $this->formRuntime = $formRuntime;
-        $this->formState = $formRuntime->getFormState();
+        $formState = $formRuntime->getFormState();
+        assert($formState instanceof FormState, 'FormState must be available when CopyService is used');
+        $this->formState = $formState;
         $this->formDefinition = $formRuntime->getFormDefinition();
         $this->typeDefinitions = $this->formDefinition->getTypeDefinitions();
         $this->features = GeneralUtility::makeInstance(Features::class);
@@ -55,10 +66,9 @@ class CopyService
     }
 
     /**
-     * @return CopyService
      * @api
      */
-    public function createCopiesFromCurrentRequest(): CopyService
+    public function createCopiesFromCurrentRequest(): void
     {
         $requestArguments = $this->formRuntime->getRequest()->getArguments();
         $this->removeDeletedRepeatableContainersFromFormValuesByRequest($requestArguments);
@@ -68,23 +78,19 @@ class CopyService
         );
 
         $this->copyRepeatableContainersFromArguments($requestArguments);
-        return $this;
     }
 
     /**
-     * @return CopyService
      * @api
      */
-    public function createCopiesFromFormState(): CopyService
+    public function createCopiesFromFormState(): void
     {
         $this->copyRepeatableContainersFromArguments($this->formState->getFormValues());
-        return $this;
     }
 
     /**
-     * @param string $originalFormElement
-     * @param string $newElementCopy
      * @return ProcessingRule[]
+     *
      * @internal
      */
     public function copyProcessingRule(
@@ -98,82 +104,58 @@ class CopyService
 
         try {
             $newProcessingRule->setDataType($originalProcessingRule->getDataType());
-        } catch (\TypeError $error) {
+        } catch (TypeError) {
         }
 
         return [$originalProcessingRule, $newProcessingRule];
     }
 
     /**
-     * @param array $requestArguments
-     * @param array $argumentPath
+     * Dispatch the afterBuildingFinished event/hook for a renderable.
+     * In v13: dispatches both the legacy SC_OPTIONS hook and the PSR-14 event.
+     * In v14+: the SC_OPTIONS hook no longer exists, only the PSR-14 event fires.
+     */
+    public function dispatchAfterBuildingFinished(RenderableInterface $renderable): void
+    {
+        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
+            $hookObj = GeneralUtility::makeInstance($className); // @phpstan-ignore argument.templateType
+            if (method_exists($hookObj, 'afterBuildingFinished')) {
+                $hookObj->afterBuildingFinished($renderable);
+            }
+        }
+
+        $this->eventDispatcher->dispatch(new AfterBuildingFinishedEvent($renderable));
+    }
+
+    /**
+     * @param array<string, mixed>   $requestArguments
+     * @param array<int, string|int> $argumentPath
      */
     protected function copyRepeatableContainersFromArguments(
         array $requestArguments,
         array $argumentPath = [],
     ): void {
         foreach ($requestArguments as $argumentKey => $argumentValue) {
-            if (is_array($argumentValue)) {
-                $originalContainer = $this->getRepeatableContainerByOriginalIdentifier((string)$argumentKey);
-                $copyIndexes = array_keys($argumentValue);
-                unset($copyIndexes[0]);
-                $argumentPath[] = $argumentKey;
-
-                if (
-                    $originalContainer
-                    && count(array_filter(array_keys($copyIndexes), 'is_string')) === 0
-                ) {
-                    $copyIndexes = ArrayUtility::sortArrayWithIntegerKeys($copyIndexes);
-
-                    if (count($argumentPath) <= 1) {
-                        $referenceContainer = $originalContainer;
-                    } else {
-                        $referenceContainerPath = $argumentPath;
-                        $referenceContainerPath[] = 0;
-                        $referenceContainerIdentifier = implode('.', $referenceContainerPath);
-                        $referenceContainer = $this->formDefinition->getElementByIdentifier($referenceContainerIdentifier);
-                    }
-
-                    $firstReferenceContainer = $referenceContainer;
-                    $firstReferenceContainer->setRenderingOption('_isReferenceContainer', true);
-                    $firstReferenceContainer->setRenderingOption('_copyMother', $originalContainer->getIdentifier());
-
-                    $minimumCopies = (int)$firstReferenceContainer->getProperties()['minimumCopies'];
-                    $maximumCopies = (int)$firstReferenceContainer->getProperties()['maximumCopies'];
-
-                    $copyNumber = 1;
-                    foreach ($copyIndexes as $copyIndex) {
-                        $contextPath = $argumentPath;
-                        $contextPath[] = $copyIndex;
-                        $newIdentifier = implode('.', $contextPath);
-
-                        $referenceContainer = $this->copyRepeatableContainer($originalContainer, $referenceContainer, $newIdentifier);
-                        $referenceContainer->setRenderingOption('_copyReference', $firstReferenceContainer->getIdentifier());
-
-                        if ($copyNumber > $maximumCopies) {
-                            $this->addError($referenceContainer, 1518701681, 'The maximum number of copies has been reached');
-                        }
-                        $copyNumber++;
-                    }
-
-                    if ($copyNumber - 1 < $minimumCopies) {
-                        $this->addError($firstReferenceContainer, 1518701682, 'The minimum number of copies has not yet been reached');
-                    }
-                }
-
-                $this->copyRepeatableContainersFromArguments($argumentValue, $argumentPath);
-                array_pop($argumentPath);
+            if (!is_array($argumentValue)) {
+                continue;
             }
+
+            $originalContainer = $this->getRepeatableContainerByOriginalIdentifier($argumentKey);
+            $copyIndexes = array_keys($argumentValue);
+            unset($copyIndexes[0]);
+            $argumentPath[] = $argumentKey;
+
+            if ($originalContainer instanceof RepeatableContainerInterface
+                && [] === array_filter(array_keys($copyIndexes), is_string(...)) // @phpstan-ignore identical.alwaysTrue
+            ) {
+                $this->processCopyIndexes($originalContainer, $copyIndexes, $argumentPath);
+            }
+
+            $this->copyRepeatableContainersFromArguments($argumentValue, $argumentPath);
+            array_pop($argumentPath);
         }
     }
 
-    /**
-     * @param RepeatableContainerInterface $copyFromContainer
-     * @param RepeatableContainerInterface $moveAfterContainer
-     * @param string $newIdentifier
-     *
-     * @return RepeatableContainerInterface
-     */
     protected function copyRepeatableContainer(
         RepeatableContainerInterface $copyFromContainer,
         RepeatableContainerInterface $moveAfterContainer,
@@ -181,13 +163,15 @@ class CopyService
     ): RepeatableContainerInterface {
         $typeName = $copyFromContainer->getType();
         $implementationClassName = $this->typeDefinitions[$typeName]['implementationClassName'];
-        $parentRenderableForNewContainer = $moveAfterContainer->getParentRenderable();
+        $parentRenderable = $moveAfterContainer->getParentRenderable();
+        assert($parentRenderable instanceof CompositeRenderableInterface);
 
-        $newContainer = GeneralUtility::makeInstance($implementationClassName, $newIdentifier, $typeName);
-        $this->copyOptions($newContainer, $copyFromContainer);
+        /** @var RepeatableContainerInterface $newContainer */
+        $newContainer = GeneralUtility::makeInstance($implementationClassName, $newIdentifier, $typeName); // @phpstan-ignore argument.templateType
+        $this->copyOptions($newContainer, $copyFromContainer); // @phpstan-ignore argument.type, argument.type
 
-        $parentRenderableForNewContainer->addElement($newContainer);
-        $parentRenderableForNewContainer->moveElementAfter($newContainer, $moveAfterContainer);
+        $parentRenderable->addElement($newContainer); // @phpstan-ignore method.notFound
+        $parentRenderable->moveElementAfter($newContainer, $moveAfterContainer); // @phpstan-ignore method.notFound
 
         $this->dispatchAfterBuildingFinished($newContainer);
 
@@ -198,24 +182,20 @@ class CopyService
         return $newContainer;
     }
 
-    /**
-     * @param FormElementInterface $newElementCopy
-     * @param FormElementInterface $originalFormElement
-     */
     protected function copyOptions(
         FormElementInterface $newElementCopy,
         FormElementInterface $originalFormElement,
     ): void {
-        $newElementCopy->setLabel($originalFormElement->getLabel());
+        $newElementCopy->setLabel($originalFormElement->getLabel()); // @phpstan-ignore method.notFound
         $newElementCopy->setDefaultValue($originalFormElement->getDefaultValue());
         foreach ($originalFormElement->getProperties() as $key => $value) {
             $newElementCopy->setProperty($key, $value);
         }
         foreach ($originalFormElement->getRenderingOptions() as $key => $value) {
             if (
-                $key === '_isRootRepeatableContainer'
-                || $key === '_originalIdentifier'
-                || $key === '_isReferenceContainer'
+                '_isRootRepeatableContainer' === $key
+                || '_originalIdentifier' === $key
+                || '_isReferenceContainer' === $key
             ) {
                 continue;
             }
@@ -230,12 +210,6 @@ class CopyService
         }
     }
 
-    /**
-     * @param FormElementInterface $originalFormElement
-     * @param CompositeRenderableInterface $parentFormElementCopy
-     * @param string $identifierOriginal
-     * @param string $identifierReplacement
-     */
     protected function createNestedElements(
         FormElementInterface $originalFormElement,
         CompositeRenderableInterface $parentFormElementCopy,
@@ -243,7 +217,7 @@ class CopyService
         string $identifierReplacement,
     ): void {
         $newIdentifier = str_replace($identifierOriginal, $identifierReplacement, $originalFormElement->getIdentifier());
-        $newFormElement = $parentFormElementCopy->createElement(
+        $newFormElement = $parentFormElementCopy->createElement( // @phpstan-ignore method.notFound
             $newIdentifier,
             $originalFormElement->getType(),
         );
@@ -254,47 +228,38 @@ class CopyService
         $this->dispatchAfterBuildingFinished($newFormElement);
 
         if ($originalFormElement instanceof CompositeRenderableInterface) {
-            foreach ($originalFormElement->getElements() as $originalChildFormElement) {
+            foreach ($originalFormElement->getElements() as $originalChildFormElement) { // @phpstan-ignore method.notFound
                 $this->createNestedElements($originalChildFormElement, $newFormElement, $identifierOriginal, $identifierReplacement);
             }
         }
     }
 
-    /**
-     * @param string $originalIdentifier
-     * @return RepeatableContainerInterface|null
-     */
     protected function getRepeatableContainerByOriginalIdentifier(string $originalIdentifier): ?RepeatableContainerInterface
     {
-        if (
-            !isset($this->repeatableContainersByOriginalIdentifier[$originalIdentifier])
-            || $this->repeatableContainersByOriginalIdentifier[$originalIdentifier] === null
-        ) {
-            foreach ($this->formDefinition->getRenderablesRecursively() as $formElement) {
-                $renderingOptions = $formElement->getRenderingOptions();
-                if (
-                    $formElement instanceof RepeatableContainerInterface
-                    && ($renderingOptions['_originalIdentifier'] ?? null) === $originalIdentifier
-                    && (bool)$renderingOptions['_isRootRepeatableContainer'] === true
-                ) {
-                    $this->repeatableContainersByOriginalIdentifier[$originalIdentifier] = $formElement;
-                }
-            }
-            if (!isset($this->repeatableContainersByOriginalIdentifier[$originalIdentifier])) {
-                $this->repeatableContainersByOriginalIdentifier[$originalIdentifier] = null;
+        if (array_key_exists($originalIdentifier, $this->repeatableContainersByOriginalIdentifier)) {
+            return $this->repeatableContainersByOriginalIdentifier[$originalIdentifier];
+        }
+
+        foreach ($this->formDefinition->getRenderablesRecursively() as $formElement) {
+            $renderingOptions = $formElement->getRenderingOptions();
+            if (
+                $formElement instanceof RepeatableContainerInterface
+                && ($renderingOptions['_originalIdentifier'] ?? null) === $originalIdentifier
+                && (bool) ($renderingOptions['_isRootRepeatableContainer'] ?? false)
+            ) {
+                $this->repeatableContainersByOriginalIdentifier[$originalIdentifier] = $formElement;
+
+                return $formElement;
             }
         }
 
-        return $this->repeatableContainersByOriginalIdentifier[$originalIdentifier];
+        $this->repeatableContainersByOriginalIdentifier[$originalIdentifier] = null;
+
+        return null;
     }
 
-    /**
-     * @param FormElementInterface $formElement
-     * @param int $timestamp
-     * @param string $defaultMessage
-     */
     protected function addError(
-        FormElementInterface $formElement,
+        FormElementInterface|RepeatableContainerInterface $formElement,
         int $timestamp,
         string $defaultMessage = '',
     ): void {
@@ -316,49 +281,37 @@ class CopyService
     }
 
     /**
-     * @param array $requestArguments
-     * @param array $argumentPath
+     * @param array<string, mixed>   $requestArguments
+     * @param array<int, string|int> $argumentPath
      */
     protected function removeDeletedRepeatableContainersFromFormValuesByRequest(
         array $requestArguments,
         array $argumentPath = [],
     ): void {
         foreach ($requestArguments as $argumentKey => $argumentValue) {
-            if (is_array($argumentValue)) {
-                $originalContainer = $this->getRepeatableContainerByOriginalIdentifier((string)$argumentKey);
-                $argumentPath[] = $argumentKey;
-                $copyIndexes = array_keys($argumentValue);
-
-                if (
-                    $originalContainer
-                    && count(array_filter(array_keys($copyIndexes), 'is_string')) === 0
-                ) {
-                    $currentArgumentPath = implode('.', $argumentPath);
-                    $formValue = $this->formState->getFormValue($currentArgumentPath);
-                    if ($formValue !== null) {
-                        foreach ($formValue as $key => $_) {
-                            if (!in_array($key, $copyIndexes)) {
-                                unset($formValue[$key]);
-                            }
-                        }
-                        $this->formState->setFormValue($currentArgumentPath, $formValue);
-                    }
-                }
-
-                $this->removeDeletedRepeatableContainersFromFormValuesByRequest($argumentValue, $argumentPath);
-                array_pop($argumentPath);
+            if (!is_array($argumentValue)) {
+                continue;
             }
+
+            $originalContainer = $this->getRepeatableContainerByOriginalIdentifier($argumentKey);
+            $argumentPath[] = $argumentKey;
+            $copyIndexes = array_keys($argumentValue);
+
+            if ($originalContainer instanceof RepeatableContainerInterface
+                && [] === array_filter(array_keys($copyIndexes), is_string(...)) // @phpstan-ignore identical.alwaysTrue
+            ) {
+                $this->pruneDeletedContainerValues(implode('.', $argumentPath), $copyIndexes);
+            }
+
+            $this->removeDeletedRepeatableContainersFromFormValuesByRequest($argumentValue, $argumentPath);
+            array_pop($argumentPath);
         }
     }
 
     /**
      * This function fetches variants of the original form element and copies them into the
      * new form element.
-     * Extendable by listening for @see CopyVariantEvent
-     *
-     * @param FormElementInterface $originalFormElement
-     * @param FormElementInterface $newFormElement
-     * @param string $newIdentifier
+     * Extendable by listening for @see CopyVariantEvent.
      */
     protected function copyVariants(
         FormElementInterface $originalFormElement,
@@ -369,15 +322,15 @@ class CopyService
             return;
         }
 
-        $originalVariants = $originalFormElement->getVariants();
+        $originalVariants = $originalFormElement->getVariants(); // @phpstan-ignore method.notFound
         foreach ($originalVariants as $originalIdentifier => $originalVariant) {
             // make sure that we only copy variants that are missing in the copied element
             if ($originalVariant instanceof RenderableVariant
-                && !in_array($originalIdentifier, array_keys($newFormElement->getVariants()))
+                && !in_array($originalIdentifier, array_keys($newFormElement->getVariants()), true) // @phpstan-ignore method.notFound
             ) {
                 // variant properties are protected and class is marked internal,
                 // so we use reflection
-                $reflectionClass = new \ReflectionClass(RenderableVariant::class);
+                $reflectionClass = new ReflectionClass(RenderableVariant::class);
                 $propOption = $reflectionClass->getProperty('options');
                 $propCondition = $reflectionClass->getProperty('condition');
                 $options = $propOption->getValue($originalVariant);
@@ -395,25 +348,88 @@ class CopyService
                 }
 
                 $options = $event->getOptions();
-                $newFormElement->createVariant($options);
+                $newFormElement->createVariant($options); // @phpstan-ignore method.notFound
             }
         }
     }
 
     /**
-     * Dispatch the afterBuildingFinished event/hook for a renderable.
-     * In v13: dispatches both the legacy SC_OPTIONS hook and the PSR-14 event.
-     * In v14+: the SC_OPTIONS hook no longer exists, only the PSR-14 event fires.
+     * @param array<int, int|string> $copyIndexes
      */
-    protected function dispatchAfterBuildingFinished(RenderableInterface $renderable): void
+    private function pruneDeletedContainerValues(string $formValuePath, array $copyIndexes): void
     {
-        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
-            $hookObj = GeneralUtility::makeInstance($className);
-            if (method_exists($hookObj, 'afterBuildingFinished')) {
-                $hookObj->afterBuildingFinished($renderable);
-            }
+        $formValue = $this->formState->getFormValue($formValuePath);
+        if (!is_array($formValue)) {
+            return;
         }
 
-        $this->eventDispatcher->dispatch(new AfterBuildingFinishedEvent($renderable));
+        foreach ($formValue as $key => $_) {
+            if (!in_array($key, $copyIndexes, true)) {
+                unset($formValue[$key]);
+            }
+        }
+        $this->formState->setFormValue($formValuePath, $formValue);
+    }
+
+    /**
+     * @param array<int, int|string> $copyIndexes
+     * @param array<int, string|int> $argumentPath
+     */
+    private function processCopyIndexes(
+        RepeatableContainerInterface $originalContainer,
+        array $copyIndexes,
+        array $argumentPath,
+    ): void {
+        $copyIndexes = ArrayUtility::sortArrayWithIntegerKeys($copyIndexes);
+
+        $referenceContainer = $this->resolveReferenceContainer($originalContainer, $argumentPath);
+        if (!$referenceContainer instanceof RepeatableContainerInterface) {
+            return;
+        }
+
+        $firstReferenceContainer = $referenceContainer;
+        $firstReferenceContainer->setRenderingOption('_isReferenceContainer', true); // @phpstan-ignore method.notFound
+        $firstReferenceContainer->setRenderingOption('_copyMother', $originalContainer->getIdentifier()); // @phpstan-ignore method.notFound
+
+        $minimumCopies = (int) ($firstReferenceContainer->getProperties()['minimumCopies'] ?? 0);
+        $maximumCopies = (int) ($firstReferenceContainer->getProperties()['maximumCopies'] ?? 0);
+
+        $copyNumber = 1;
+        foreach ($copyIndexes as $copyIndex) {
+            $contextPath = $argumentPath;
+            $contextPath[] = $copyIndex;
+            $newIdentifier = implode('.', $contextPath);
+
+            $referenceContainer = $this->copyRepeatableContainer($originalContainer, $referenceContainer, $newIdentifier);
+            $referenceContainer->setRenderingOption('_copyReference', $firstReferenceContainer->getIdentifier()); // @phpstan-ignore method.notFound
+
+            if ($copyNumber > $maximumCopies) {
+                $this->addError($referenceContainer, 1518701681, 'The maximum number of copies has been reached');
+            }
+            ++$copyNumber;
+        }
+
+        if ($copyNumber - 1 < $minimumCopies) {
+            $this->addError($firstReferenceContainer, 1518701682, 'The minimum number of copies has not yet been reached');
+        }
+    }
+
+    /**
+     * @param array<int, string|int> $argumentPath
+     */
+    private function resolveReferenceContainer(
+        RepeatableContainerInterface $originalContainer,
+        array $argumentPath,
+    ): ?RepeatableContainerInterface {
+        if (count($argumentPath) <= 1) {
+            return $originalContainer;
+        }
+
+        $referenceContainerPath = $argumentPath;
+        $referenceContainerPath[] = 0;
+        $referenceContainerIdentifier = implode('.', $referenceContainerPath);
+        $element = $this->formDefinition->getElementByIdentifier($referenceContainerIdentifier);
+
+        return $element instanceof RepeatableContainerInterface ? $element : null;
     }
 }

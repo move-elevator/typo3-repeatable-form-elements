@@ -1,4 +1,10 @@
-/public
-/vendor
-/composer.lock
 .Build/
+.claude
+.idea
+/public
+!Resources/Public
+/vendor
+/var
+/Tests/CGL/vendor
+.phpunit.result.cache
+Tests/CGL/.php-cs-fixer.cache

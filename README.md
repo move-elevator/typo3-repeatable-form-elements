@@ -1,64 +1,85 @@
-<!-- Generated with 🧡 at typo3-badges.dev -->
-![TYPO3 extension](https://typo3-badges.dev/badge/repeatable_form_elements/extension/shields.svg)
-![Total downloads](https://typo3-badges.dev/badge/repeatable_form_elements/downloads/shields.svg)
+<div align="center">
+
+<img src="Resources/Public/Icons/Extension.svg" width="100" alt="Extension icon">
+
+# TYPO3 extension `repeatable_form_elements`
+
+[![Latest Stable Version](https://typo3-badges.dev/badge/repeatable_form_elements/version/shields.svg)](https://extensions.typo3.org/extension/repeatable_form_elements)
+[![Supported TYPO3 versions](https://typo3-badges.dev/badge/repeatable_form_elements/typo3/shields.svg)](https://extensions.typo3.org/extension/repeatable_form_elements)
+[![Supported PHP Versions](https://img.shields.io/packagist/dependency-v/move-elevator/typo3-repeatable-form-elements/php?logo=php)](https://packagist.org/packages/move-elevator/typo3-repeatable-form-elements)
 ![Stability](https://typo3-badges.dev/badge/repeatable_form_elements/stability/shields.svg)
-![TYPO3 versions](https://typo3-badges.dev/badge/repeatable_form_elements/typo3/shields.svg)
-![Latest version](https://typo3-badges.dev/badge/repeatable_form_elements/version/shields.svg)
+[![CGL](https://img.shields.io/github/actions/workflow/status/move-elevator/typo3-repeatable-form-elements/cgl.yml?label=cgl&logo=github)](https://github.com/move-elevator/typo3-repeatable-form-elements/actions/workflows/cgl.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/move-elevator/typo3-repeatable-form-elements/tests.yml?label=tests&logo=github)](https://github.com/move-elevator/typo3-repeatable-form-elements/actions/workflows/tests.yml)
+[![License](https://poser.pugx.org/move-elevator/typo3-repeatable-form-elements/license)](LICENSE)
 
-# Custom form element "Repeatable container"
+</div>
 
-This TYPO3 extension adds a custom form element "Repeatable container" to the
-TYPO3 form framework. It displays one/ a set of fields which can be duplicated
-and removed if desired. Any existing validation is copied as well. All form
-finishers will be aware of the copied field(s).
+> [!NOTE]
+> This is a fork of [tritum/repeatable_form_elements](https://github.com/tritum/repeatable_form_elements), the original extension by Ralf Zimmermann / dreistrom.land. This fork adds TYPO3 v14 compatibility, PSR-14 event migration, CI/CD infrastructure and a DDEV-based multi-version test environment.
 
-## Preferred installation
+A TYPO3 extension that adds a **Repeatable container** element to the TYPO3 form framework. It allows editors to create container elements with any type of fields. In the frontend, users can dynamically add and remove copies of the container. Validation is copied automatically and all form finishers are aware of the duplicated fields.
 
-1. Require the extension via composer.
-2. Add the site set tritum/form-element-linked-checkbox to the dependencies of 
-   your site packages site set (TYPO3 v13). Or add the static TypoScript 
-   configuration to your TypoScript template (TYPO3 v12 and TYPO3 v13).
+## 📋 Requirements
 
-## Usage
+| Requirement | Version |
+|-------------|---------|
+| PHP | 8.2 – 8.5 |
+| TYPO3 | 13.4 LTS, 14.x |
 
-Open the TYPO3 form editor and create a new form/ open an existing one. Add a
-new element to your form. The modal will list the new custom form element
-"Repeatable container".
+## 🚀 Installation
 
-Add the desired fields with the favored validators to the "Repeatable container".
+```bash
+composer require move-elevator/typo3-repeatable-form-elements
+```
 
-The frontend will render the "Repeatable container" as fieldset. In addition to the
-included form elements it will display buttons for copying/ removing new sets of fields.
+Add the site set `tritum/repeatable-form-elements` to the dependencies of your site package's site set:
 
-The newly implemented extended version of SaveToDatabaseFinisher can be used as seen [here](Resources/Private/ExampleFormDefinitions/extended-save-to-database-finisher.form.yaml).
+```yaml
+# Configuration/Sets/YourSitePackage/config.yaml
+dependencies:
+  - tritum/repeatable-form-elements
+```
 
-## Configuration
+## 💡 Usage
 
-To deactivate the copying of variants, the feature `repeatableFormElements.copyVariants` can be used
+1. Open the TYPO3 **form editor** and create or open a form.
+2. Add a new element — the modal lists the **Repeatable container**.
+3. Add fields with validators to the container.
+4. In the frontend, the container renders as a `<fieldset>` with **copy** and **remove** buttons.
 
-## Extendability
+### Extended SaveToDatabaseFinisher
 
-The following options can be used to extend the behavior when copying.
+An extended version of the `SaveToDatabaseFinisher` is included for persisting repeatable container data. See the [example form definition](Resources/Private/ExampleFormDefinitions/extended-save-to-database-finisher.form.yaml).
 
-| Name             | Description                                                      |
-|------------------|------------------------------------------------------------------|
-| CopyVariantEvent | Extend manipulation of copied variants or disable specific ones. |
+## ⚙️ Configuration
 
-## Credits
+To deactivate the copying of variants, disable the feature flag:
 
-This TYPO3 extension was created by Ralf Zimmermann (https://dreistrom.land).
+```php
+$GLOBALS['TYPO3_CONF_VARS']['SYS']['features']['repeatableFormElements.copyVariants'] = false;
+```
 
-## Thank you
+## 🔌 Extendability
 
-Nora Winter - "Faktenkopf" at www.faktenhaus.de - sponsored this great extension.
-The fine people at www.b13.de connected all the people involved.
+| Event | Description |
+|-------|-------------|
+| `CopyVariantEvent` | Modify or disable specific copied variants during container duplication. |
+| `AfterBuildingFinishedEvent` | React after a form renderable has been built/copied by the repeatable container logic. Replaces the removed `afterBuildingFinished` SC_OPTIONS hook. |
 
-Elias Häußler - haeussler.dev - for helping with TYPO3v11 compatability and providing
-the beautiful [TYPO3 badges](https://typo3-badges.dev). Use them. Give him some kudos!
+## 🤝 Contributing
 
-Uwe - Hawkeye1909 - for removing jQuery as dependency.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, linting, testing and the PR workflow.
 
-Alexander Opitz @ extrameile-gehen.de - for his work on saving repeatable elements to database.
+## 📝 Changelog
 
+See [CHANGELOG.md](CHANGELOG.md) for a list of changes.
 
-especially to all others who have contributed to the improvement of the extension.
+## 🏆 Credits
+
+Originally created by [Ralf Zimmermann / dreistrom.land](https://dreistrom.land). See the [original repository](https://github.com/tritum/repeatable_form_elements) for the full list of contributors.
+
+This fork is maintained by [move:elevator](https://move-elevator.de).
+
+## 📄 License
+
+GPL-2.0-or-later — see [LICENSE](LICENSE) for details.
