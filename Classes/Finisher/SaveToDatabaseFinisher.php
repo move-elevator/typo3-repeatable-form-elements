@@ -212,10 +212,10 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
      */
     private function canValueBeHandled(mixed $elementValue, array $elementsConfiguration, string $elementIdentifier, string $prefix): bool
     {
-        $elementConfig = $elementsConfiguration[$elementIdentifier];
-        if (!isset($elementConfig)) {
+        if (!isset($elementsConfiguration[$elementIdentifier])) {
             return false;
         }
+        $elementConfig = $elementsConfiguration[$elementIdentifier];
 
         if (
             (null === $elementValue || '' === $elementValue)

@@ -13,14 +13,6 @@ declare(strict_types=1);
 
 namespace TRITUM\RepeatableFormElements\Hooks;
 
-/*
- * This file is part of the "repeatable_form_elements" Extension for TYPO3 CMS.
- *
- * For the full copyright and license information, please read the
- * LICENSE.txt file that was distributed with this source code.
- */
-use Psr\EventDispatcher\EventDispatcherInterface;
-use TRITUM\RepeatableFormElements\Event\AfterBuildingFinishedEvent;
 use TRITUM\RepeatableFormElements\FormElements\RepeatableContainerInterface;
 use TRITUM\RepeatableFormElements\Service\CopyService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -48,8 +40,10 @@ final class FormHooks
         ?CompositeRenderableInterface $lastPage = null,
         array $rawRequestArguments = [],
     ): ?CompositeRenderableInterface {
+        $copyService = GeneralUtility::makeInstance(CopyService::class, $formRuntime);
+
         foreach ($formRuntime->getPages() as $page) {
-            $this->setRootRepeatableContainerIdentifiers($page, $formRuntime);
+            $this->setRootRepeatableContainerIdentifiers($page, $formRuntime, $copyService);
         }
 
         // first request
@@ -57,8 +51,7 @@ final class FormHooks
             return $currentPage;
         }
 
-        $copyService = GeneralUtility::makeInstance(CopyService::class, $formRuntime);
-        if ($this->userWentBackToPreviousStep($formRuntime, $currentPage, $lastPage)) {
+        if ($this->userWentBackToPreviousStep($currentPage, $lastPage)) {
             $copyService->createCopiesFromFormState();
         } else {
             $copyService->createCopiesFromCurrentRequest();
@@ -75,8 +68,8 @@ final class FormHooks
             $fluidAdditionalAttributes = $properties['fluidAdditionalAttributes'] ?? [];
             $fluidAdditionalAttributes['data-element-type'] = $renderable->getType();
             if ('DatePicker' === $renderable->getType()) {
-                $fluidAdditionalAttributes['data-element-datepicker-enabled'] = (int) $renderable->getProperties()['enableDatePicker'];
-                $fluidAdditionalAttributes['data-element-datepicker-date-format'] = $renderable->getProperties()['dateFormat'];
+                $fluidAdditionalAttributes['data-element-datepicker-enabled'] = (int) $properties['enableDatePicker'];
+                $fluidAdditionalAttributes['data-element-datepicker-date-format'] = $properties['dateFormat'];
             }
 
             $renderable->setProperty('fluidAdditionalAttributes', $fluidAdditionalAttributes);
@@ -91,6 +84,7 @@ final class FormHooks
     private function setRootRepeatableContainerIdentifiers(
         RenderableInterface $renderable,
         FormRuntime $formRuntime,
+        CopyService $copyService,
         array $repeatableContainerIdentifiers = [],
     ): void {
         $isRepeatableContainer = $renderable instanceof RepeatableContainerInterface;
@@ -105,12 +99,12 @@ final class FormHooks
         }
 
         if ([] !== $repeatableContainerIdentifiers && !$hasOriginalIdentifier) {
-            $this->rewriteRenderableIdentifier($renderable, $formRuntime, $repeatableContainerIdentifiers, $isRepeatableContainer);
+            $this->rewriteRenderableIdentifier($renderable, $formRuntime, $copyService, $repeatableContainerIdentifiers, $isRepeatableContainer);
         }
 
         if ($renderable instanceof RepeatableContainerInterface) {
             foreach ($renderable->getElements() as $childRenderable) {
-                $this->setRootRepeatableContainerIdentifiers($childRenderable, $formRuntime, $repeatableContainerIdentifiers);
+                $this->setRootRepeatableContainerIdentifiers($childRenderable, $formRuntime, $copyService, $repeatableContainerIdentifiers);
             }
         }
     }
@@ -123,6 +117,7 @@ final class FormHooks
     private function rewriteRenderableIdentifier(
         RenderableInterface $renderable,
         FormRuntime $formRuntime,
+        CopyService $copyService,
         array $repeatableContainerIdentifiers,
         bool $isRepeatableContainer,
     ): void {
@@ -145,7 +140,6 @@ final class FormHooks
         $renderable->setIdentifier($newIdentifier);
         $formRuntime->getFormDefinition()->registerRenderable($renderable);
 
-        $copyService = GeneralUtility::makeInstance(CopyService::class, $formRuntime);
         [$originalProcessingRule] = $copyService->copyProcessingRule($originalIdentifier, $newIdentifier);
 
         if ($renderable instanceof FormElementInterface) {
@@ -155,24 +149,13 @@ final class FormHooks
             }
         }
 
-        // Legacy hook (v13 compat, no-op in v14)
-        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
-            $hookObj = GeneralUtility::makeInstance($className); // @phpstan-ignore argument.templateType
-            if (method_exists($hookObj, 'afterBuildingFinished')) {
-                $hookObj->afterBuildingFinished($renderable);
-            }
-        }
-        // PSR-14 event (v13 + v14)
-        GeneralUtility::makeInstance(EventDispatcherInterface::class)->dispatch(
-            new AfterBuildingFinishedEvent($renderable),
-        );
+        $copyService->dispatchAfterBuildingFinished($renderable);
     }
 
     /**
      * returns TRUE if the user went back to any previous step in the form.
      */
     private function userWentBackToPreviousStep(
-        FormRuntime $formRuntime,
         ?CompositeRenderableInterface $currentPage = null,
         ?CompositeRenderableInterface $lastPage = null,
     ): bool {

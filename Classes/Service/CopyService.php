@@ -13,13 +13,6 @@ declare(strict_types=1);
 
 namespace TRITUM\RepeatableFormElements\Service;
 
-/*
- * This file is part of the "repeatable_form_elements" Extension for TYPO3 CMS.
- *
- * For the full copyright and license information, please read the
- * LICENSE.txt file that was distributed with this source code.
- */
-
 use Psr\EventDispatcher\EventDispatcherInterface;
 use ReflectionClass;
 use TRITUM\RepeatableFormElements\Event\{AfterBuildingFinishedEvent, CopyVariantEvent};
@@ -75,7 +68,7 @@ class CopyService // @phpstan-ignore complexity.classLike
     /**
      * @api
      */
-    public function createCopiesFromCurrentRequest(): self
+    public function createCopiesFromCurrentRequest(): void
     {
         $requestArguments = $this->formRuntime->getRequest()->getArguments();
         $this->removeDeletedRepeatableContainersFromFormValuesByRequest($requestArguments);
@@ -85,18 +78,14 @@ class CopyService // @phpstan-ignore complexity.classLike
         );
 
         $this->copyRepeatableContainersFromArguments($requestArguments);
-
-        return $this;
     }
 
     /**
      * @api
      */
-    public function createCopiesFromFormState(): self
+    public function createCopiesFromFormState(): void
     {
         $this->copyRepeatableContainersFromArguments($this->formState->getFormValues());
-
-        return $this;
     }
 
     /**
@@ -119,6 +108,23 @@ class CopyService // @phpstan-ignore complexity.classLike
         }
 
         return [$originalProcessingRule, $newProcessingRule];
+    }
+
+    /**
+     * Dispatch the afterBuildingFinished event/hook for a renderable.
+     * In v13: dispatches both the legacy SC_OPTIONS hook and the PSR-14 event.
+     * In v14+: the SC_OPTIONS hook no longer exists, only the PSR-14 event fires.
+     */
+    public function dispatchAfterBuildingFinished(RenderableInterface $renderable): void
+    {
+        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
+            $hookObj = GeneralUtility::makeInstance($className); // @phpstan-ignore argument.templateType
+            if (method_exists($hookObj, 'afterBuildingFinished')) {
+                $hookObj->afterBuildingFinished($renderable);
+            }
+        }
+
+        $this->eventDispatcher->dispatch(new AfterBuildingFinishedEvent($renderable));
     }
 
     /**
@@ -345,23 +351,6 @@ class CopyService // @phpstan-ignore complexity.classLike
                 $newFormElement->createVariant($options); // @phpstan-ignore method.notFound
             }
         }
-    }
-
-    /**
-     * Dispatch the afterBuildingFinished event/hook for a renderable.
-     * In v13: dispatches both the legacy SC_OPTIONS hook and the PSR-14 event.
-     * In v14+: the SC_OPTIONS hook no longer exists, only the PSR-14 event fires.
-     */
-    protected function dispatchAfterBuildingFinished(RenderableInterface $renderable): void
-    {
-        foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/form']['afterBuildingFinished'] ?? [] as $className) {
-            $hookObj = GeneralUtility::makeInstance($className); // @phpstan-ignore argument.templateType
-            if (method_exists($hookObj, 'afterBuildingFinished')) {
-                $hookObj->afterBuildingFinished($renderable);
-            }
-        }
-
-        $this->eventDispatcher->dispatch(new AfterBuildingFinishedEvent($renderable));
     }
 
     /**
