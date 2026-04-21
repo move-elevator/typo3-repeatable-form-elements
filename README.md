@@ -1,16 +1,21 @@
-<!-- Generated with 🧡 at typo3-badges.dev -->
-![TYPO3 extension](https://typo3-badges.dev/badge/repeatable_form_elements/extension/shields.svg)
-![Total downloads](https://typo3-badges.dev/badge/repeatable_form_elements/downloads/shields.svg)
+<div align="center">
+
+![Extension icon](Resources/Public/Icons/Extension.svg)
+
+# TYPO3 extension `repeatable_form_elements`
+
+[![Latest Stable Version](https://typo3-badges.dev/badge/repeatable_form_elements/version/shields.svg)](https://extensions.typo3.org/extension/repeatable_form_elements)
+[![Supported TYPO3 versions](https://typo3-badges.dev/badge/repeatable_form_elements/typo3/shields.svg)](https://extensions.typo3.org/extension/repeatable_form_elements)
+[![Supported PHP Versions](https://img.shields.io/packagist/dependency-v/move-elevator/typo3-repeatable-form-elements/php?logo=php)](https://packagist.org/packages/move-elevator/typo3-repeatable-form-elements)
 ![Stability](https://typo3-badges.dev/badge/repeatable_form_elements/stability/shields.svg)
-![TYPO3 versions](https://typo3-badges.dev/badge/repeatable_form_elements/typo3/shields.svg)
-![Latest version](https://typo3-badges.dev/badge/repeatable_form_elements/version/shields.svg)
+[![CGL](https://img.shields.io/github/actions/workflow/status/move-elevator/typo3-repeatable-form-elements/cgl.yml?label=cgl&logo=github)](https://github.com/move-elevator/typo3-repeatable-form-elements/actions/workflows/cgl.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/move-elevator/typo3-repeatable-form-elements/tests.yml?label=tests&logo=github)](https://github.com/move-elevator/typo3-repeatable-form-elements/actions/workflows/tests.yml)
+[![License](https://poser.pugx.org/move-elevator/typo3-repeatable-form-elements/license)](LICENSE)
+
+</div>
 
 > [!NOTE]
 > This is a fork of [tritum/repeatable_form_elements](https://github.com/tritum/repeatable_form_elements), the original extension by Ralf Zimmermann / dreistrom.land. This fork adds TYPO3 v14 compatibility, PSR-14 event migration, CI/CD infrastructure and a DDEV-based multi-version test environment.
-
-<img src="Resources/Public/Icons/Extension.svg" width="64" height="64" alt="Extension icon">
-
-# Repeatable Form Elements
 
 A TYPO3 extension that adds a **Repeatable container** element to the TYPO3 form framework. It allows editors to create container elements with any type of fields. In the frontend, users can dynamically add and remove copies of the container. Validation is copied automatically and all form finishers are aware of the duplicated fields.
 
