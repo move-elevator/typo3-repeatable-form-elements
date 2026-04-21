@@ -8,7 +8,9 @@
 > [!NOTE]
 > This is a fork of [tritum/repeatable_form_elements](https://github.com/tritum/repeatable_form_elements), the original extension by Ralf Zimmermann / dreistrom.land. This fork adds TYPO3 v14 compatibility, PSR-14 event migration, CI/CD infrastructure and a DDEV-based multi-version test environment.
 
-# 📦 Repeatable Form Elements
+<img src="Resources/Public/Icons/Extension.svg" width="64" height="64" alt="Extension icon">
+
+# Repeatable Form Elements
 
 A TYPO3 extension that adds a **Repeatable container** element to the TYPO3 form framework. It allows editors to create container elements with any type of fields. In the frontend, users can dynamically add and remove copies of the container. Validation is copied automatically and all form finishers are aware of the duplicated fields.
 
@@ -16,7 +18,7 @@ A TYPO3 extension that adds a **Repeatable container** element to the TYPO3 form
 
 | Requirement | Version |
 |-------------|---------|
-| PHP | 8.2 – 8.4 |
+| PHP | 8.2 – 8.5 |
 | TYPO3 | 13.4 LTS, 14.x |
 
 ## 🚀 Installation
@@ -75,4 +77,4 @@ This fork is maintained by [move:elevator](https://move-elevator.de).
 
 ## 📄 License
 
-GPL-2.0-or-later — see [LICENSE](LICENSE.txt) for details.
+GPL-2.0-or-later — see [LICENSE](LICENSE) for details.
