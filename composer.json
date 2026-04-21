@@ -1,32 +1,13 @@
 {
-    "name": "tritum/repeatable-form-elements",
+    "name": "move-elevator/typo3-repeatable-form-elements",
     "description": "Adds a new form element which allows the editor to create new container elements with any type fields in them. In the frontend, a user can create any number of new containers. This is an extension for TYPO3 CMS.",
     "license": "GPL-2.0-or-later",
     "type": "typo3-cms-extension",
     "authors": [
         {
-            "name": "Ralf Zimmermann",
-            "email": "r.zimmermann@dreistrom.land",
-            "homepage": "https://dreistrom.land",
-            "role": "Developer"
-        },
-        {
-            "name": "Falko Linke",
-            "email": "f.linke@dreistrom.land",
-            "homepage": "https://dreistrom.land",
-            "role": "Developer"
-        },
-        {
-            "name": "Elias Häußler",
-            "email": "elias@haeussler.dev",
-            "homepage": "https://haeussler.dev",
-            "role": "Developer"
-        },
-        {
-            "name": "Christian Seyfferth",
-            "email": "c.seyfferth@dreistrom.land",
-            "homepage": "https://dreistrom.land",
-            "role": "Developer"
+            "name": "Konrad Michalik",
+            "email": "km@move-elevator.de",
+            "role": "Maintainer"
         }
     ],
     "require": {
@@ -44,6 +25,11 @@
     "autoload": {
         "psr-4": {
             "TRITUM\\RepeatableFormElements\\": "Classes/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TRITUM\\RepeatableFormElements\\Tests\\": "Tests/"
         }
     },
     "config": {
