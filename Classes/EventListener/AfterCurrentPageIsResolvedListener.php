@@ -20,6 +20,7 @@ use TYPO3\CMS\Form\Event\AfterCurrentPageIsResolvedEvent;
  * AfterCurrentPageIsResolvedListener.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 final readonly class AfterCurrentPageIsResolvedListener
 {

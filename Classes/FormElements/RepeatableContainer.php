@@ -25,5 +25,6 @@ use TYPO3\CMS\Form\Domain\Model\FormElements\Section;
  * RepeatableContainer.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 class RepeatableContainer extends Section implements RepeatableContainerInterface {}

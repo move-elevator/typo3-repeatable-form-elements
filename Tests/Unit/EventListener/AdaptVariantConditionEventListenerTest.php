@@ -23,6 +23,7 @@ use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
  * AdaptVariantConditionEventListenerTest.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 #[CoversClass(AdaptVariantConditionEventListener::class)]
 final class AdaptVariantConditionEventListenerTest extends TestCase

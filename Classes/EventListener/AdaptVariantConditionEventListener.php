@@ -28,6 +28,7 @@ use TRITUM\RepeatableFormElements\Event\CopyVariantEvent;
  * @param CopyVariantEvent $event
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 final class AdaptVariantConditionEventListener
 {

@@ -22,6 +22,7 @@ use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
  * CopyVariantEventTest.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 #[CoversClass(CopyVariantEvent::class)]
 final class CopyVariantEventTest extends TestCase

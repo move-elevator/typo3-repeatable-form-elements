@@ -22,6 +22,7 @@ use TYPO3\CMS\Form\Domain\Model\Renderable\RenderableInterface;
  * AfterBuildingFinishedEventTest.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 #[CoversClass(AfterBuildingFinishedEvent::class)]
 final class AfterBuildingFinishedEventTest extends TestCase
