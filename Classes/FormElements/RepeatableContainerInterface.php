@@ -20,6 +20,7 @@ use TYPO3\CMS\Form\Domain\Model\Renderable\CompositeRenderableInterface;
  * RepeatableContainerInterface.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 interface RepeatableContainerInterface extends CompositeRenderableInterface
 {

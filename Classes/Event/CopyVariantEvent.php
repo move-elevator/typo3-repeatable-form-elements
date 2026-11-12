@@ -26,6 +26,7 @@ use TYPO3\CMS\Form\Domain\Model\FormElements\FormElementInterface;
  * CopyVariantEvent.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 class CopyVariantEvent
 {

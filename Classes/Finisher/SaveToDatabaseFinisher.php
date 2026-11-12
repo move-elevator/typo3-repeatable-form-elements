@@ -34,6 +34,7 @@ use function is_string;
  * SaveToDatabaseFinisher.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToDatabaseFinisher
 {

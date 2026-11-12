@@ -40,6 +40,7 @@ use function is_array;
  * CopyService.
  *
  * @author Konrad Michalik <km@move-elevator.de>
+ * @license GPL-2.0-or-later
  */
 class CopyService // @phpstan-ignore complexity.classLike
 {
