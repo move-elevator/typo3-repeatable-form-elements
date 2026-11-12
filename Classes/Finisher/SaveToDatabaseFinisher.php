@@ -48,23 +48,10 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
         $table = is_string($table) ? $table : '';
         $elementsConfiguration = $this->parseOption('elements');
         $elementsConfiguration = is_array($elementsConfiguration) ? $elementsConfiguration : [];
-        $databaseColumnMappingsConfiguration = $this->parseOption('databaseColumnMappings');
 
         $this->databaseConnection = $this->connectionPool->getConnectionForTable($table);
 
-        $databaseData = [];
-        $databaseColumnMappingsConfiguration = is_array($databaseColumnMappingsConfiguration) ? $databaseColumnMappingsConfiguration : [];
-        foreach ($databaseColumnMappingsConfiguration as $databaseColumnName => $databaseColumnConfiguration) {
-            $value = $this->parseOption('databaseColumnMappings.'.$databaseColumnName.'.value');
-            if (
-                (null === $value || '' === $value)
-                && ($databaseColumnConfiguration['skipIfValueIsEmpty'] ?? false) === true
-            ) {
-                continue;
-            }
-
-            $databaseData[$databaseColumnName] = $value;
-        }
+        $databaseData = $this->resolveColumnMappings();
 
         // decide which strategy to use
         $containerConfiguration = $this->parseOption('container');
@@ -181,6 +168,32 @@ class SaveToDatabaseFinisher extends \TYPO3\CMS\Form\Domain\Finishers\SaveToData
                 $currentCount + 1,
             );
         }
+    }
+
+    /**
+     * @return array<string, mixed> static column values from the `databaseColumnMappings` option
+     */
+    private function resolveColumnMappings(): array
+    {
+        $databaseColumnMappingsConfiguration = $this->parseOption('databaseColumnMappings');
+        if (!is_array($databaseColumnMappingsConfiguration)) {
+            return [];
+        }
+
+        $databaseData = [];
+        foreach ($databaseColumnMappingsConfiguration as $databaseColumnName => $databaseColumnConfiguration) {
+            $value = $this->parseOption('databaseColumnMappings.'.$databaseColumnName.'.value');
+            if (
+                (null === $value || '' === $value)
+                && ($databaseColumnConfiguration['skipIfValueIsEmpty'] ?? false) === true
+            ) {
+                continue;
+            }
+
+            $databaseData[$databaseColumnName] = $value;
+        }
+
+        return $databaseData;
     }
 
     private function resolveElementValue(mixed $elementValue, mixed $elementConfig): mixed
